@@ -18,18 +18,18 @@ module {
         isReserved : Bool;
         reservedBy : ?Principal;
         reserveTime : ?Time.Time;
-        comment : ?Text;
+        comment : ?Text
     };
     public type Reservation = {
         user : User.User;
         tableId : Nat;
-        reserveAt : Time.Time;
+        reserveAt : Time.Time
     };
 
     public type Cart = {
         user : User.User;
         tableId : ?Nat;
-        items : [Menu.Menu];
+        items : [Menu.MenuItem]
     };
 
     public type TableMap = Map.Map<Nat, Table>;
@@ -37,16 +37,16 @@ module {
     /////table get from map
 
     public func get(tables : TableMap, key : Nat) : ?Table {
-        return Map.get<Nat, Table>(tables, nhash, key);
+        return Map.get<Nat, Table>(tables, nhash, key)
     };
 
     // table put to map
     public func put(tables : TableMap, key : Nat, value : Table) : () {
-        return Map.set<Nat, Table>(tables, nhash, key, value);
+        return Map.set<Nat, Table>(tables, nhash, key, value)
     };
 
     // Initialize tables
-    public func new(tables : TableMap, tableNumber : Nat, capacity : Nat) : TableMap {
+    public func new(tables : TableMap, tableNumber : Nat, capacity : Nat) : () {
 
         let table = {
             id = tableNumber;
@@ -55,15 +55,13 @@ module {
             reservedBy = null;
             reserveTime = null;
             comment = null;
-            cart = [];
+            cart = []
         };
 
         put(tables, tableNumber, table);
 
         Debug.print("Tables::" #Nat.toText(tableNumber) # ":: initialized ");
-        Debug.print(debug_show (tables));
-
-        return tables;
+        Debug.print(debug_show (tables))
     };
 
     // Function to reserve a table
@@ -78,22 +76,22 @@ module {
                         reservedBy = ?reservedBy;
                         reserveTime = ?Time.now();
                         comment = comment;
-                        cart = [];
+                        cart = []
                     };
                     put(tables, tableId, updatedTable);
                     Debug.print("Table reserved: ");
                     Debug.print(debug_show (tables));
-                    return #ok(tables);
+                    return #ok(tables)
                 } else {
                     Debug.print("Table already reserved.");
-                    return #err("Table already reserved.");
-                };
+                    return #err("Table already reserved.")
+                }
             };
             case null {
                 Debug.print("Table ID out of range.");
-                return #err("Table ID out of range.");
-            };
-        };
+                return #err("Table ID out of range.")
+            }
+        }
     };
 
     // Function to unreserve a table
@@ -108,34 +106,34 @@ module {
                         reservedBy = null;
                         reserveTime = null;
                         comment = null;
-                        cart = [];
+                        cart = []
                     };
                     put(tables, tableId, updatedTable);
                     Debug.print("Table unreserved: ");
                     Debug.print(debug_show (tables));
-                    return #ok(tables);
+                    return #ok(tables)
                 } else {
                     Debug.print("Table was not reserved.");
-                    return #err("Table was not reserved.");
-                };
+                    return #err("Table was not reserved.")
+                }
             };
             case null {
                 Debug.print("Table ID out of range.");
-                return #err("Table ID out of range.");
-            };
-        };
+                return #err("Table ID out of range.")
+            }
+        }
     };
 
     // Function to check if a table is isReserved
     public func isReserved(tables : TableMap, tableId : Nat) : Bool {
         switch (get(tables, tableId)) {
             case (?table) {
-                return table.isReserved;
+                return table.isReserved
             };
             case (null) {
-                return false;
-            };
-        };
+                return false
+            }
+        }
     };
 
     /**
@@ -152,22 +150,22 @@ module {
             switch (table.reservedBy) {
                 case (?p) {
                     if (p == principal) {
-                        reservedTables := Array.append<Nat>(reservedTables, [tableId]);
-                    };
+                        reservedTables := Array.append<Nat>(reservedTables, [tableId])
+                    }
                 };
                 case (null) {
-                    return [];
-                };
-            };
+                    return []
+                }
+            }
         };
 
-        return reservedTables;
+        return reservedTables
     };
 
     // Check if the table exists and is reserved by the specified principal.
-    public func canPerformUnreserveTable(tables : TableMap, user : User.User, p : Principal, tableId : Nat) : Bool {
-        if (User.canPerform(user, #UnreserveTable) == true) {
-            return true;
+    public func canUnreserveTable(tables : TableMap, userMap : User.UserMap, p : Principal, tableId : Nat) : Bool {
+        if (User.canPerformByPrincipal(userMap, p, #UnreserveTable) == true) {
+            return true
         } else {
             switch (isReserved(tables, tableId)) {
                 case (true) {
@@ -177,22 +175,22 @@ module {
                                 case (?reservedBy) {
 
                                     if (reservedBy == p) {
-                                        return true;
+                                        return true
                                     } else {
-                                        return false;
-                                    };
+                                        return false
+                                    }
                                 };
-                                case (null) { return false };
-                            };
+                                case (null) { return false }
+                            }
                         };
-                        case (null) { return false };
-                    };
+                        case (null) { return false }
+                    }
                 };
 
                 case (false) { return false };
 
-            };
-        };
+            }
+        }
     };
 
-};
+}

@@ -3,42 +3,27 @@ import Result "mo:base/Result";
 import Map "mo:map/Map";
 import { nhash; phash } "mo:map/Map";
 
-import User "User";
-
 module {
-    public type Order = {
-        user : User.User;
-        orderType : OrderType;
-        items : [Menu];
-    };
-
-    public type OrderType = {
-        #InPerson;
-        #OnTable;
-        #TakeOut;
-    };
-
-    public type Menu = {
+    public type MenuItem = {
         name : Text;
         price : Nat;
         discription : Text;
-        image : ?Blob;
+        image : ?Blob
     };
 
-    public type MenuMap = Map.Map<Nat, Menu>;
+    public type MenuMap = Map.Map<Nat, MenuItem>;
 
-    public func get(menu : MenuMap, key : Nat) : ?Menu {
-        return Map.get<Nat, Menu>(menu, nhash, key);
+    public func get(menu : MenuMap, key : Nat) : ?MenuItem {
+        return Map.get<Nat, MenuItem>(menu, nhash, key)
     };
 
-    // Menu put to map
-    public func put(menu : MenuMap, key : Nat, value : Menu) : () {
-        return Map.set<Nat, Menu>(menu, nhash, key, value);
+    // MenuItem put to map
+    public func put(menu : MenuMap, key : Nat, value : MenuItem) : () {
+        return Map.set<Nat, MenuItem>(menu, nhash, key, value)
     };
 
-    public func new(menuMap : MenuMap, p : Principal, menuId : Nat, newMenu : Menu) : MenuMap {
-
+    public func new(menuMap : MenuMap, p : Principal, menuId : Nat, newMenu : MenuItem) : MenuMap {
         put(menuMap, menuId, newMenu);
-        return menuMap;
-    };
-};
+        return menuMap
+    }
+}

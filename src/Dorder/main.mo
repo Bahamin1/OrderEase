@@ -25,184 +25,170 @@ import User "User";
 shared ({ caller = manager }) actor class Dorder() = this {
 
   ///////////////////Users FuncTion
-  stable var users : User.UserMap = Map.new<Principal, User.User>();
+  stable var userMap : User.UserMap = Map.new<Principal, User.User>();
 
+  // TODO: Replace this with Manager
   let guest : Principal = Principal.fromText("2vxsx-fae");
 
-  users := User.new(users, guest, "ADMIN", #Admin, []);
+  userMap := User.new(userMap, guest, "ADMIN", #Admin, []);
 
   ////////// Buffer loG OF Members
   var logOfMembers = Buffer.Buffer<Text>(0);
   public query func getMemberLogNew() : async [Text] {
-    return Buffer.toArray(logOfMembers);
+    return Buffer.toArray(logOfMembers)
   };
 
   ////////// Register User
   public shared ({ caller }) func registerMemberNew(name : Text, image : ?Blob) : async Result.Result<(), Text> {
-    let user = User.get(users, caller);
-    let allowedOperations = [
-      #ReserveTable,
-      #PayTable,
-      #ModifyEmployeePoints,
-    ];
-
-    switch (user) {
+    switch (User.get(userMap, caller)) {
       case (?user) {
-        return #err("User : :" # Principal.toText(caller) # ": : Already Registered!");
+        return #err("User " # Principal.toText(caller) # " Already Registered!")
       };
       case (null) {
-        users := User.new(users, caller, name, #Customer, allowedOperations);
-        logOfMembers.add("Member with Principal : :" # Principal.toText(caller) # ": : registered");
-        return #ok();
-      };
-    };
+        let allowedOperations = [
+          #ReserveTable,
+          #PayTable,
+          #ModifyEmployeePoints,
+        ];
+
+        userMap := User.new(userMap, caller, name, #Customer, allowedOperations);
+        logOfMembers.add("Member with Principal " # Principal.toText(caller) # " registered");
+        return #ok()
+      }
+    }
   };
   ////////// Add manager just admin can do ....
   public shared ({ caller }) func addManager(principal : Principal, name : Text, allowedOperations : [User.Operation]) : async Result.Result<(), Text> {
-    let user = User.get(users, caller);
-    let userToEmployee = User.get(users, principal);
-    switch (user) {
+    switch (User.get(userMap, caller)) {
       case (null) {
-        return #err("caller not exists!");
+        return #err("caller not exists!")
       };
       case (?user) {
         if (User.canPerform(user, #HireManager) != true) {
-          return #err("The caller : :" # Principal.toText(caller) # ": : havent Opration for this func");
+          return #err("The caller " # Principal.toText(caller) # " havent Opration for this func")
         };
-        switch (userToEmployee) {
+
+        switch (User.get(userMap, principal)) {
           case (?is) {
-            users := User.new(users, is.principal, is.name, #Manager, allowedOperations);
-            logOfMembers.add("Member : :" #Principal.toText(principal) # ": : updated to Manager By : :" # Principal.toText(caller) # ": :");
-            return #ok();
+            userMap := User.new(userMap, is.principal, is.name, #Manager, allowedOperations);
+            logOfMembers.add("Member " #Principal.toText(principal) # " updated to Manager By " # Principal.toText(caller) # "");
+            return #ok()
           };
           case (null) {
-            users := User.new(users, principal, name, #Manager, allowedOperations);
-            logOfMembers.add("New Manager : :" # Principal.toText(principal) # ": : Added  By : :" # Principal.toText(caller) # ": :");
-            return #ok();
-          };
-        };
-      };
-    };
+            userMap := User.new(userMap, principal, name, #Manager, allowedOperations);
+            logOfMembers.add("New Manager " # Principal.toText(principal) # " Added  By " # Principal.toText(caller) # "");
+            return #ok()
+          }
+        }
+      }
+    }
   };
 
   ////////// Aadd employee function for anyone have opration #HireEmployee
   public shared ({ caller }) func addEmployee(principal : Principal, name : Text, allowedOperations : [User.Operation]) : async Result.Result<(), Text> {
-    let user = User.get(users, caller);
-    let userToEmployee = User.get(users, principal);
+    let user = User.get(userMap, caller);
     switch (user) {
       case (null) {
-        return #err("caller not exists!");
+        return #err("caller not exists!")
       };
       case (?user) {
         if (User.canPerform(user, #HireEmployee) != true) {
-          return #err("The caller : :" # Principal.toText(caller) # ": : havent Opration for this func");
+          return #err("The caller " # Principal.toText(caller) # " havent Opration for this func")
         };
-        switch (userToEmployee) {
+
+        switch (User.get(userMap, principal)) {
           case (?is) {
-            users := User.new(users, is.principal, is.name, #Employee, allowedOperations);
-            logOfMembers.add("Member : :" #Principal.toText(principal) # ": : updated By : :" # Principal.toText(caller) # ": :");
-            return #ok();
+            userMap := User.new(userMap, is.principal, is.name, #Employee, allowedOperations);
+            logOfMembers.add("Member " #Principal.toText(principal) # " updated By " # Principal.toText(caller) # "");
+            return #ok()
           };
           case (null) {
-            users := User.new(users, principal, name, #Employee, allowedOperations);
-            logOfMembers.add("New Member : :" # Principal.toText(principal) # ": : Added By : :" # Principal.toText(caller) # ": :");
-            return #ok();
-          };
-        };
-      };
-    };
+            userMap := User.new(userMap, principal, name, #Employee, allowedOperations);
+            logOfMembers.add("New Member " # Principal.toText(principal) # " Added By " # Principal.toText(caller) # "");
+            return #ok()
+          }
+        }
+      }
+    }
   };
 
   //Get member
   public query func getMember(p : Principal) : async ?User.User {
-    let member = User.get(users, p);
-    return member;
+    let member = User.get(userMap, p);
+    return member
   };
 
   /////////// Get all Members
   public query func getAllMembersNew() : async [User.User] {
-    return Iter.toArray(Map.vals<Principal, User.User>(users));
+    return Iter.toArray(Map.vals<Principal, User.User>(userMap))
   };
 
   //////////////////////////////////////////////////////////////////////////////////////
 
   /////////// Table Map and LoG \\\\\\\\\\
-  stable var tables : Table.TableMap = Map.new<Nat, Table.Table>();
+  stable var tableMap : Table.TableMap = Map.new<Nat, Table.Table>();
   var logOfTable : Buffer.Buffer<Text> = Buffer.Buffer<Text>(0);
 
   ////////// Get log Of Tables
   public shared query ({ caller }) func getTableLogs() : async [Text] {
-    return Buffer.toArray(logOfTable);
+    return Buffer.toArray(logOfTable)
   };
 
   ////////// Add Tables
   public shared ({ caller }) func addTableNew(tableNumber : Nat, capacity : Nat) : async Result.Result<(Text), Text> {
-    switch (Table.get(tables, tableNumber)) {
+    switch (Table.get(tableMap, tableNumber)) {
       case (?is) {
-        return #err("This Table is Already added with this number");
+        return #err("This Table is Already added with this number")
       };
       case (null) {
-        tables := Table.new(tables, tableNumber, capacity);
-        logOfTable.add("Table : :" #Nat.toText(tableNumber) # ": : was  Added by : :" #Principal.toText(caller) # ": :! ");
-        return #ok(" Table : : " #Nat.toText(tableNumber) # " : : was Added! ");
-      };
-    };
+        Table.new(tableMap, tableNumber, capacity);
+        logOfTable.add("Table " #Nat.toText(tableNumber) # " was  Added by " #Principal.toText(caller) # "! ");
+        return #ok(" Table  " #Nat.toText(tableNumber) # "  was Added! ")
+      }
+    }
   };
 
   // get all Table
   public shared query func getTables() : async [Table.Table] {
-    return Iter.toArray(Map.vals<Nat, Table.Table>(tables));
+    return Iter.toArray(Map.vals<Nat, Table.Table>(tableMap))
   };
 
   ////////// Reserve Table
 
   public shared ({ caller }) func reserveTableNew(tableId : Nat, comment : ?Text) : async Result.Result<Text, Text> {
-    switch (Table.reserve(tables, tableId, caller, comment)) {
+    switch (Table.reserve(tableMap, tableId, caller, comment)) {
       case (#ok(updatedTable)) {
-        logOfTable.add("Table : :" #Nat.toText(tableId) # ": : was Reserved by: :" #Principal.toText(caller) # ": : ");
-        return #ok("Table reserved successfully.");
+        logOfTable.add("Table " #Nat.toText(tableId) # " was Reserved by " #Principal.toText(caller) # "!");
+        return #ok("Table reserved successfully.")
       };
       case (#err(errorMessage)) {
-        return #err(errorMessage);
-      };
-    };
+        return #err(errorMessage)
+      }
+    }
   };
 
   public shared ({ caller }) func unreserveTableNew(tableId : Nat) : async Result.Result<Text, Text> {
-    switch (User.get(users, caller)) {
-      case (null) {
-        return #err("Caller does not exist!");
-      };
-      case (?user) {
-        switch (Table.canPerformUnreserveTable(tables, user, caller, tableId)) {
-          case (true) {
-            switch (Table.unreserve(users, caller, tables, tableId)) {
-              case (#ok(updatedTable)) {
-                logOfTable.add("Table : :" #Nat.toText(tableId) # ": : was Unreserved by: :" #Principal.toText(caller) # ": : ");
-                return #ok("Table : :" #Nat.toText(tableId) # ": : was Unreserved! ");
-              };
-              case (#err(errorMessage)) {
-                return #err(errorMessage);
-              };
-            };
-            return #ok("The table succssesfully unreserved.");
-          };
-          case (false) {
-            return #err("The caller : :" #Principal.toText(caller) # ": : dose not Reserved this table ");
-          };
-        };
-
-      };
+    if (Table.canUnreserveTable(tableMap, userMap, caller, tableId) != true) {
+      return #err("The caller " #Principal.toText(caller) # " dose not Reserved this table ")
     };
+
+    switch (Table.unreserve(userMap, caller, tableMap, tableId)) {
+      case (#ok(updatedTable)) {
+        logOfTable.add("Table " #Nat.toText(tableId) # " was Unreserved by " #Principal.toText(caller) # " ");
+        return #ok("Table " #Nat.toText(tableId) # " was Unreserved!")
+      };
+      case (#err(errorMessage)) {
+        return #err(errorMessage)
+      }
+    }
   };
 
   /////////////////////// Menu Functions
 
-  stable var menuMap : Menu.MenuMap = Map.new<Nat, Menu.Menu>();
+  stable var menuMap : Menu.MenuMap = Map.new<Nat, Menu.MenuItem>();
   private var nextMenuId : Nat = 0;
-  var logOfMenu : Buffer.Buffer<Text> = Buffer.Buffer<Text>(0);
 
-  public shared ({ caller }) func addMenu(newMenu : Menu.Menu) : async Nat {
+  public shared ({ caller }) func addMenu(newMenu : Menu.MenuItem) : async Nat {
     let menuId = nextMenuId;
     nextMenuId += 1;
     menuMap := Menu.new(menuMap, caller, menuId, newMenu);
@@ -382,7 +368,7 @@ shared ({ caller = manager }) actor class Dorder() = this {
   //         };
   //         membersPut(caller, newMember);
   //         numberOfMember += 1;
-  //         logOfMember.add("New Member : : registered : " #Principal.toText(caller) # " with name : " #newMember.name # "! ");
+  //         logOfMember.add("New Member  registered : " #Principal.toText(caller) # " with name : " #newMember.name # "! ");
   //         Debug.print("member successfully set ");
   //         return #ok();
   //       };
@@ -428,7 +414,7 @@ shared ({ caller = manager }) actor class Dorder() = this {
 
   //         };
   //         membersPut(caller, newMember);
-  //         logOfMember.add("Member : : Changed Name : " #Principal.toText(caller) # " to : " #newMember.name # "! ");
+  //         logOfMember.add("Member  Changed Name : " #Principal.toText(caller) # " to : " #newMember.name # "! ");
   //         Debug.print("Member Updated! ");
   //         return #ok();
 
@@ -791,7 +777,7 @@ shared ({ caller = manager }) actor class Dorder() = this {
   //       };
   //       case (?member) {
   //         if (member.role == #Anonymus) {
-  //           return #err("anonymus members cant reserve tables ");
+  //           return #err("anonymus members cant reserve tableMap ");
   //         } else {
   //           switch (table) {
   //             case (null) {
