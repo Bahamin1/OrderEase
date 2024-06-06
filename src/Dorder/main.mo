@@ -188,12 +188,17 @@ shared ({ caller = manager }) actor class Dorder() = this {
   stable var menuMap : Menu.MenuMap = Map.new<Nat, Menu.MenuItem>();
   private var nextMenuId : Nat = 0;
 
-  public shared ({ caller }) func addMenu(newMenu : Menu.MenuItem) : async Nat {
+  public shared ({ caller }) func addMenuItem(newMenuItem : Menu.MenuItem) : async Result.Result<Nat, Text> {
+    if (User.canPerformByPrincipal(userMap, caller, #AddMenuItem) != true) {
+      return #err("The caller " #Principal.toText(caller) # " dose not have permission to add menu")
+    };
+
     let menuId = nextMenuId;
     nextMenuId += 1;
-    menuMap := Menu.new(menuMap, caller, menuId, newMenu);
-    return menuId;
 
+    menuMap := Menu.new(menuMap, menuId, newMenuItem);
+
+    return #ok(menuId)
   };
 
   /////////////////////////////////////

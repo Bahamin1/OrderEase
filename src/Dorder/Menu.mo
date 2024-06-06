@@ -22,7 +22,7 @@ module {
         return Map.set<Nat, MenuItem>(menu, nhash, key, value)
     };
 
-    public func new(menuMap : MenuMap, p : Principal, menuId : Nat, newMenu : MenuItem) : MenuMap {
+    public func new(menuMap : MenuMap, menuId : Nat, newMenu : MenuItem) : MenuMap {
         put(menuMap, menuId, newMenu);
         return menuMap
     }
