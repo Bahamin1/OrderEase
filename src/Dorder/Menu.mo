@@ -1,7 +1,6 @@
 import Blob "mo:base/Blob";
-import Result "mo:base/Result";
 import Map "mo:map/Map";
-import { nhash; phash } "mo:map/Map";
+import { nhash } "mo:map/Map";
 
 module {
     public type MenuItem = {

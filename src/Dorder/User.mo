@@ -1,23 +1,11 @@
-import Array "mo:base/Array";
-import Char "mo:base/Char";
-import Error "mo:base/Error";
 import Principal "mo:base/Principal";
-import Result "mo:base/Result";
 import Map "mo:map/Map";
-import { nhash; phash } "mo:map/Map";
+import { phash } "mo:map/Map";
 import Menu "Menu";
 
 // Define the enum for different operations
 module {
-
-    public type UserRole = {
-        #Guest;
-        #Customer;
-        #Employee;
-        #Manager;
-        #Admin
-    };
-    public type AdminOperation = {
+    public type Operation = {
         #ReserveTable;
         #UnreserveTable;
         #PayTable;
@@ -32,17 +20,12 @@ module {
         #ModifyEmployeePoints
     };
 
-    public type Operation = {
-        #ReserveTable;
-        #UnreserveTable;
-        #PayTable;
-        #HireEmployee;
-        #FireEmployee;
-        #AddMenuItem;
-        #RemoveMenuItem;
-        #UpdateMenuItem;
-        #ViewReports;
-        #ModifyEmployeePoints
+    public type UserRole = {
+        #Guest;
+        #Customer;
+        #Employee;
+        #Manager;
+        #Admin
     };
 
     public type OrderType = {
@@ -98,7 +81,7 @@ module {
         return userMap
     };
     //// Check user can call function and have opration for that...
-    public func canPerform(user : User, operation : AdminOperation) : Bool {
+    public func canPerform(user : User, operation : Operation) : Bool {
         if (user.role == #Admin) return true;
 
         for (o in user.allowedOperations.vals()) {
@@ -108,7 +91,7 @@ module {
         return false
     };
 
-    public func canPerformByPrincipal(userMap : UserMap, p : Principal, operation : AdminOperation) : Bool {
+    public func canPerformByPrincipal(userMap : UserMap, p : Principal, operation : Operation) : Bool {
         let user = get(userMap, p);
 
         switch user {

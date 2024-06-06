@@ -1,15 +1,14 @@
-import Array "mo:base/Array";
 import Debug "mo:base/Debug";
-import Iter "mo:base/Iter";
 import Nat "mo:base/Nat";
 import Principal "mo:base/Principal";
 import Result "mo:base/Result";
 import Time "mo:base/Time";
+import Buffer "mo:base/Buffer";
 import Map "mo:map/Map";
-import { nhash; phash } "mo:map/Map";
+import { nhash } "mo:map/Map";
 
-import Menu "Menu";
 import User "User";
+
 module {
     // Table type definition
     public type Table = {
@@ -18,18 +17,13 @@ module {
         isReserved : Bool;
         reservedBy : ?Principal;
         reserveTime : ?Time.Time;
-        comment : ?Text
+        seatedCustomers : [Principal]
     };
+
     public type Reservation = {
         user : User.User;
         tableId : Nat;
         reserveAt : Time.Time
-    };
-
-    public type Cart = {
-        user : User.User;
-        tableId : ?Nat;
-        items : [Menu.MenuItem]
     };
 
     public type TableMap = Map.Map<Nat, Table>;
@@ -54,8 +48,7 @@ module {
             isReserved = false;
             reservedBy = null;
             reserveTime = null;
-            comment = null;
-            cart = []
+            seatedCustomers = []
         };
 
         put(tables, tableNumber, table);
@@ -65,7 +58,7 @@ module {
     };
 
     // Function to reserve a table
-    public func reserve(tables : TableMap, tableId : Nat, reservedBy : Principal, comment : ?Text) : Result.Result<TableMap, Text> {
+    public func reserve(tables : TableMap, tableId : Nat, reservedBy : Principal) : Result.Result<TableMap, Text> {
         switch (get(tables, tableId)) {
             case (?table) {
                 if (table.isReserved != true) {
@@ -75,8 +68,7 @@ module {
                         isReserved = true;
                         reservedBy = ?reservedBy;
                         reserveTime = ?Time.now();
-                        comment = comment;
-                        cart = []
+                        seatedCustomers = []
                     };
                     put(tables, tableId, updatedTable);
                     Debug.print("Table reserved: ");
@@ -95,7 +87,7 @@ module {
     };
 
     // Function to unreserve a table
-    public func unreserve(users : User.UserMap, p : Principal, tables : TableMap, tableId : Nat) : Result.Result<TableMap, Text> {
+    public func unreserve(tables : TableMap, tableId : Nat) : Result.Result<TableMap, Text> {
         switch (get(tables, tableId)) {
             case (?table) {
                 if (table.isReserved != false) {
@@ -105,8 +97,7 @@ module {
                         isReserved = false;
                         reservedBy = null;
                         reserveTime = null;
-                        comment = null;
-                        cart = []
+                        seatedCustomers = []
                     };
                     put(tables, tableId, updatedTable);
                     Debug.print("Table unreserved: ");
@@ -143,18 +134,18 @@ module {
      * @param {Principal} principal - The principal to check reservations for.
      * @return {[Nat]} - An array of table IDs reserved by the principal.
      */
-    public func reservedByPrincipal(tables : TableMap, principal : Principal) : [Nat] {
-        var reservedTables : [Nat] = [];
+    public func reservedByPrincipal(tables : TableMap, principal : Principal) : Buffer.Buffer<Nat> {
+        var reservedTables = Buffer.Buffer<Nat>(0);
 
         for ((tableId, table) in Map.entries(tables)) {
             switch (table.reservedBy) {
                 case (?p) {
                     if (p == principal) {
-                        reservedTables := Array.append<Nat>(reservedTables, [tableId])
+                        reservedTables.add(tableId)
                     }
                 };
                 case (null) {
-                    return []
+                    return Buffer.Buffer<Nat>(0)
                 }
             }
         };

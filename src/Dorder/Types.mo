@@ -4,6 +4,7 @@ import HashMap "mo:base/HashMap";
 import Nat8 "mo:base/Nat8";
 import Text "mo:base/Text";
 import Time "mo:base/Time";
+
 module {
     public type Member = {
         name : Text;
@@ -11,7 +12,7 @@ module {
         role : Role;
         image : [Blob];
         joined : Time.Time;
-        point : [PointForEmployee];
+        point : [PointForEmployee]
     };
 
     public type Role = {
@@ -20,14 +21,14 @@ module {
         #Employee;
         #Customer;
         #VIP;
-        #Anonymus;
+        #Anonymus
     };
 
     public type Permission = {
         #VeryHigh;
         #High;
         #Medium;
-        #Low;
+        #Low
     };
 
     public type Product = {
@@ -37,7 +38,7 @@ module {
         info : Text;
         fee : Nat;
         image : [Blob];
-        rating : [Point];
+        rating : [Point]
     };
 
     public type NewProduct = {
@@ -45,7 +46,7 @@ module {
         stock : Bool;
         fee : Nat;
         info : Text;
-        image : [Blob];
+        image : [Blob]
     };
 
     public type Point = {
@@ -55,14 +56,14 @@ module {
         point : Nat8;
         suggest : Bool;
         cratedAt : Time.Time;
-        image : [Blob];
+        image : [Blob]
     };
 
     public type NewPoint = {
         suggest : Bool;
         addPoint : Nat8;
         comment : ?Text;
-        image : ?Blob;
+        image : ?Blob
     };
 
     public type PointForEmployee = {
@@ -79,7 +80,7 @@ module {
         reservedBy : ?Principal;
         cart : ?CartProduct;
         comment : ?Text;
-        reserveTime : ?Time.Time;
+        reserveTime : ?Time.Time
     };
 
     //cart map
@@ -88,12 +89,12 @@ module {
 
     public type Cart = {
         products : HashMap.HashMap<Nat, CartProduct>;
-        createdAt : Int;
+        createdAt : Int
     };
     public type CartProduct = {
         quantity : Nat;
         productId : Nat;
-        createdAt : Int;
+        createdAt : Int
     };
 
-};
+}
