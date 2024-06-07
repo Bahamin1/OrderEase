@@ -1,25 +1,10 @@
 import Principal "mo:base/Principal";
 import Map "mo:map/Map";
 import { phash } "mo:map/Map";
-import Menu "Menu";
+import T "Types";
 
 // Define the enum for different operations
 module {
-    public type Operation = {
-        #ReserveTable;
-        #UnreserveTable;
-        #PayTable;
-        #HireManager;
-        #FireManager;
-        #HireEmployee;
-        #FireEmployee;
-        #AddMenuItem;
-        #RemoveMenuItem;
-        #UpdateMenuItem;
-        #ViewReports;
-        #ModifyEmployeePoints
-    };
-
     public type UserRole = {
         #Guest;
         #Customer;
@@ -28,25 +13,15 @@ module {
         #Admin
     };
 
-    public type OrderType = {
-        #OnTable;
-        #TakeOut
-    };
-
-    public type Order = {
-        orderType : OrderType;
-        items : [Menu.MenuItem]
-    };
-
     public type User = {
         name : Text;
         principal : Principal;
         role : UserRole;
-        allowedOperations : [Operation];
+        allowedOperations : [T.Operation];
         id : Nat;
         image : ?Blob;
         points : Nat;
-        orders : [Order]
+        orders : [T.Order]
     };
 
     public type UserMap = Map.Map<Principal, User>;
@@ -62,7 +37,7 @@ module {
     };
 
     ///// add New user specefic with oprations
-    public func new(userMap : UserMap, principal : Principal, name : Text, role : UserRole, allowedOperations : [Operation]) : UserMap {
+    public func new(userMap : UserMap, principal : Principal, name : Text, role : UserRole, allowedOperations : [T.Operation]) : UserMap {
         let id = Map.size(userMap) +1;
 
         let user : User = {
@@ -80,18 +55,8 @@ module {
 
         return userMap
     };
-    //// Check user can call function and have opration for that...
-    public func canPerform(user : User, operation : Operation) : Bool {
-        if (user.role == #Admin) return true;
 
-        for (o in user.allowedOperations.vals()) {
-            if (operation == o) return true
-        };
-
-        return false
-    };
-
-    public func canPerformByPrincipal(userMap : UserMap, p : Principal, operation : Operation) : Bool {
+    public func canPerform(userMap : UserMap, p : Principal, operation : T.Operation) : Bool {
         let user = get(userMap, p);
 
         switch user {

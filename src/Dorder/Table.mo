@@ -14,16 +14,9 @@ module {
     public type Table = {
         id : Nat;
         capacity : Nat;
-        isReserved : Bool;
         reservedBy : ?Principal;
         reserveTime : ?Time.Time;
         seatedCustomers : [Principal]
-    };
-
-    public type Reservation = {
-        user : User.User;
-        tableId : Nat;
-        reserveAt : Time.Time
     };
 
     public type TableMap = Map.Map<Nat, Table>;
@@ -60,69 +53,84 @@ module {
     // Function to reserve a table
     public func reserve(tables : TableMap, tableId : Nat, reservedBy : Principal) : Result.Result<TableMap, Text> {
         switch (get(tables, tableId)) {
-            case (?table) {
-                if (table.isReserved != true) {
-                    let updatedTable : Table = {
-                        id = table.id;
-                        capacity = table.capacity;
-                        isReserved = true;
-                        reservedBy = ?reservedBy;
-                        reserveTime = ?Time.now();
-                        seatedCustomers = []
-                    };
-                    put(tables, tableId, updatedTable);
-                    Debug.print("Table reserved: ");
-                    Debug.print(debug_show (tables));
-                    return #ok(tables)
-                } else {
-                    Debug.print("Table already reserved.");
-                    return #err("Table already reserved.")
-                }
-            };
             case null {
                 Debug.print("Table ID out of range.");
                 return #err("Table ID out of range.")
-            }
+            };
+            case (?table) {
+                switch (table.reservedBy) {
+                    case (?reservedBy) {
+                        Debug.print("Table already reserved.");
+                        return #err("Table already reserved.")
+                    };
+                    case (null) {
+                        let updatedTable : Table = {
+                            id = table.id;
+                            capacity = table.capacity;
+                            reservedBy = ?reservedBy;
+                            reserveTime = ?Time.now();
+                            seatedCustomers = []
+                        };
+                        put(tables, tableId, updatedTable);
+                        Debug.print("Table reserved: ");
+                        Debug.print(debug_show (tables));
+                        return #ok(tables)
+                    }
+                }
+            };
+
         }
     };
 
     // Function to unreserve a table
     public func unreserve(tables : TableMap, tableId : Nat) : Result.Result<TableMap, Text> {
         switch (get(tables, tableId)) {
-            case (?table) {
-                if (table.isReserved != false) {
-                    let updatedTable : Table = {
-                        id = table.id;
-                        capacity = table.capacity;
-                        isReserved = false;
-                        reservedBy = null;
-                        reserveTime = null;
-                        seatedCustomers = []
-                    };
-                    put(tables, tableId, updatedTable);
-                    Debug.print("Table unreserved: ");
-                    Debug.print(debug_show (tables));
-                    return #ok(tables)
-                } else {
-                    Debug.print("Table was not reserved.");
-                    return #err("Table was not reserved.")
-                }
-            };
             case null {
                 Debug.print("Table ID out of range.");
                 return #err("Table ID out of range.")
-            }
+            };
+            case (?table) {
+                switch (table.reservedBy) {
+                    case (?reservedBy) {
+                        Debug.print("Table already reserved.");
+                        return #err("Table already reserved.")
+                    };
+                    case (null) {
+                        let updatedTable : Table = {
+                            id = table.id;
+                            capacity = table.capacity;
+                            isReserved = false;
+                            reservedBy = null;
+                            reserveTime = null;
+                            seatedCustomers = []
+                        };
+                        put(tables, tableId, updatedTable);
+                        Debug.print("Table unreserved: ");
+                        Debug.print(debug_show (tables));
+                        return #ok(tables)
+                    }
+                }
+            };
+
         }
     };
 
     // Function to check if a table is isReserved
     public func isReserved(tables : TableMap, tableId : Nat) : Bool {
         switch (get(tables, tableId)) {
-            case (?table) {
-                return table.isReserved
-            };
             case (null) {
                 return false
+            };
+            case (?table) {
+                switch (table.reservedBy) {
+                    case (null) {
+                        return false
+                    };
+                    case (?reservedBy) {
+                        return true
+                    };
+
+                }
             }
         }
     };
@@ -139,13 +147,13 @@ module {
 
         for ((tableId, table) in Map.entries(tables)) {
             switch (table.reservedBy) {
+                case (null) {
+                    return Buffer.Buffer<Nat>(0)
+                };
                 case (?p) {
                     if (p == principal) {
                         reservedTables.add(tableId)
                     }
-                };
-                case (null) {
-                    return Buffer.Buffer<Nat>(0)
                 }
             }
         };
@@ -154,34 +162,25 @@ module {
     };
 
     // Check if the table exists and is reserved by the specified principal.
-    public func canUnreserveTable(tables : TableMap, userMap : User.UserMap, p : Principal, tableId : Nat) : Bool {
-        if (User.canPerformByPrincipal(userMap, p, #UnreserveTable) == true) {
-            return true
-        } else {
-            switch (isReserved(tables, tableId)) {
-                case (true) {
-                    switch (get(tables, tableId)) {
-                        case (?table) {
-                            switch (table.reservedBy) {
-                                case (?reservedBy) {
-
-                                    if (reservedBy == p) {
-                                        return true
-                                    } else {
-                                        return false
-                                    }
-                                };
-                                case (null) { return false }
+    public func canUnreserveTable(tables : TableMap, p : Principal, tableId : Nat) : Bool {
+        if (isReserved(tables, tableId)) {
+            switch (get(tables, tableId)) {
+                case (null) { return false };
+                case (?table) {
+                    switch (table.reservedBy) {
+                        case (null) { return false };
+                        case (?reservedBy) {
+                            if (reservedBy == p) {
+                                return true
+                            } else {
+                                return false
                             }
-                        };
-                        case (null) { return false }
+                        }
                     }
-                };
-
-                case (false) { return false };
-
+                }
             }
-        }
-    };
 
+        };
+        return false
+    }
 }
