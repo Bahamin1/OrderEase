@@ -232,6 +232,14 @@ shared ({ caller = manager }) actor class Dorder() = this {
 
   };
 
+  public shared query func getAllMenuItems() : async [Menu.MenuItem] {
+    return Iter.toArray(Map.vals<Nat, Menu.MenuItem>(menuMap));
+  };
+
+  public query func getItem(menuId : Nat) : async ?Menu.MenuItem {
+    return Menu.get(menuMap, menuId);
+  };
+
   /////////////////////////////////////
   ////////////////////////////////////
   ///////////////////////////////////
