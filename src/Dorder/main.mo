@@ -19,12 +19,12 @@ import SB "mo:stable-buffer";
 
 import Menu "Menu";
 import Table "Table";
-import T "Types";
+import Type "Types";
 import User "User";
 
 shared ({ caller = manager }) actor class Dorder() = this {
 
-  ///////////////////Users FuncTion
+  // Users FuncTion
   stable var userMap : User.UserMap = Map.new<Principal, User.User>();
 
   // TODO: Replace this with Manager
@@ -32,17 +32,17 @@ shared ({ caller = manager }) actor class Dorder() = this {
 
   userMap := User.new(userMap, guest, "ADMIN", #Admin, []);
 
-  ////////// Buffer loG OF Members
+  // Buffer loG OF Members
   var logOfMembers = Buffer.Buffer<Text>(0);
   public query func getMemberLogNew() : async [Text] {
-    return Buffer.toArray(logOfMembers)
+    return Buffer.toArray(logOfMembers);
   };
 
-  ////////// Register User
+  // Register User
   public shared ({ caller }) func registerMemberNew(name : Text, image : ?Blob) : async Result.Result<(), Text> {
     switch (User.get(userMap, caller)) {
       case (?user) {
-        return #err("User " # Principal.toText(caller) # " Already Registered!")
+        return #err("User " # Principal.toText(caller) # " Already Registered!");
       };
       case (null) {
         let allowedOperations = [
@@ -52,147 +52,183 @@ shared ({ caller = manager }) actor class Dorder() = this {
         ];
 
         userMap := User.new(userMap, caller, name, #Customer, allowedOperations);
-        logOfMembers.add("Member with Principal " # Principal.toText(caller) # " registered");
-        return #ok()
-      }
-    }
-  };
-  ////////// Add manager just admin can do ....
-  public shared ({ caller }) func addManager(principal : Principal, name : Text, allowedOperations : [User.Operation]) : async Result.Result<(), Text> {
-    switch (User.get(userMap, caller)) {
-      case (null) {
-        return #err("caller not exists!")
+        logOfMembers.add("Member with Principal " # Principal.toText(caller) # " Registered!");
+        return #ok();
       };
-      case (?user) {
-        if (User.canPerform(user, #HireManager) != true) {
-          return #err("The caller " # Principal.toText(caller) # " havent Opration for this func")
-        };
-
-        switch (User.get(userMap, principal)) {
-          case (?is) {
-            userMap := User.new(userMap, is.principal, is.name, #Manager, allowedOperations);
-            logOfMembers.add("Member " #Principal.toText(principal) # " updated to Manager By " # Principal.toText(caller) # "");
-            return #ok()
-          };
-          case (null) {
-            userMap := User.new(userMap, principal, name, #Manager, allowedOperations);
-            logOfMembers.add("New Manager " # Principal.toText(principal) # " Added  By " # Principal.toText(caller) # "");
-            return #ok()
-          }
-        }
-      }
-    }
+    };
   };
 
-  ////////// Aadd employee function for anyone have opration #HireEmployee
-  public shared ({ caller }) func addEmployee(principal : Principal, name : Text, allowedOperations : [User.Operation]) : async Result.Result<(), Text> {
-    let user = User.get(userMap, caller);
-    switch (user) {
-      case (null) {
-        return #err("caller not exists!")
-      };
-      case (?user) {
-        if (User.canPerform(user, #HireEmployee) != true) {
-          return #err("The caller " # Principal.toText(caller) # " havent Opration for this func")
-        };
+  // Add manager just admin can do ....
+  public shared ({ caller }) func addManager(principal : Principal, name : Text, allowedOperations : [Type.Operation]) : async Result.Result<(), Text> {
+    if (User.canPerform(userMap, caller, #HireManager) != true) {
+      return #err("The caller " # Principal.toText(caller) # " havent Opration for this func");
+    };
 
-        switch (User.get(userMap, principal)) {
-          case (?is) {
-            userMap := User.new(userMap, is.principal, is.name, #Employee, allowedOperations);
-            logOfMembers.add("Member " #Principal.toText(principal) # " updated By " # Principal.toText(caller) # "");
-            return #ok()
-          };
-          case (null) {
-            userMap := User.new(userMap, principal, name, #Employee, allowedOperations);
-            logOfMembers.add("New Member " # Principal.toText(principal) # " Added By " # Principal.toText(caller) # "");
-            return #ok()
-          }
-        }
-      }
-    }
+    switch (User.get(userMap, principal)) {
+      case (?is) {
+        userMap := User.new(userMap, is.principal, is.name, #Manager, allowedOperations);
+        logOfMembers.add("Member " #Principal.toText(principal) # " updated to Manager By " # Principal.toText(caller) # "!");
+        return #ok();
+      };
+      case (null) {
+        userMap := User.new(userMap, principal, name, #Manager, allowedOperations);
+        logOfMembers.add("New Manager " # Principal.toText(principal) # " Added  By " # Principal.toText(caller) # "!");
+        return #ok();
+      };
+    };
+  };
+
+  // Add employee function for anyone have opration #HireEmployee
+  public shared ({ caller }) func addEmployee(principal : Principal, name : Text, allowedOperations : [Type.Operation]) : async Result.Result<(), Text> {
+    if (User.canPerform(userMap, caller, #HireEmployee) != true) {
+      return #err("The caller " # Principal.toText(caller) # " havent Opration for this func");
+    };
+
+    switch (User.get(userMap, principal)) {
+      case (?is) {
+        userMap := User.new(userMap, is.principal, is.name, #Employee, allowedOperations);
+        logOfMembers.add("Member " #Principal.toText(principal) # " updated By " # Principal.toText(caller) # "!");
+        return #ok();
+      };
+      case (null) {
+        userMap := User.new(userMap, principal, name, #Employee, allowedOperations);
+        logOfMembers.add("New Member " # Principal.toText(principal) # " Added By " # Principal.toText(caller) # "!");
+        return #ok();
+      };
+    };
   };
 
   //Get member
   public query func getMember(p : Principal) : async ?User.User {
     let member = User.get(userMap, p);
-    return member
+    return member;
   };
 
-  /////////// Get all Members
+  // Get all Members
   public query func getAllMembersNew() : async [User.User] {
-    return Iter.toArray(Map.vals<Principal, User.User>(userMap))
+    return Iter.toArray(Map.vals<Principal, User.User>(userMap));
   };
 
-  //////////////////////////////////////////////////////////////////////////////////////
-
-  /////////// Table Map and LoG \\\\\\\\\\
+  //----------------- Table Functions -----------------//
   stable var tableMap : Table.TableMap = Map.new<Nat, Table.Table>();
   var logOfTable : Buffer.Buffer<Text> = Buffer.Buffer<Text>(0);
 
-  ////////// Get log Of Tables
+  // Get log Of Tables
   public shared query ({ caller }) func getTableLogs() : async [Text] {
-    return Buffer.toArray(logOfTable)
+    return Buffer.toArray(logOfTable);
   };
 
-  ////////// Add Tables
+  // Add Tables
   public shared ({ caller }) func addTableNew(tableNumber : Nat, capacity : Nat) : async Result.Result<(Text), Text> {
+    if (User.canPerform(userMap, caller, #ModifyTable) != true) {
+      return #err("The caller " #Principal.toText(caller) # " dose not have permission to add table!");
+    };
+
     switch (Table.get(tableMap, tableNumber)) {
       case (?is) {
-        return #err("This Table is Already added with this number")
+        return #err("This Table is Already added with this number");
       };
       case (null) {
         Table.new(tableMap, tableNumber, capacity);
-        logOfTable.add("Table " #Nat.toText(tableNumber) # " was  Added by " #Principal.toText(caller) # "! ");
-        return #ok(" Table  " #Nat.toText(tableNumber) # "  was Added! ")
-      }
-    }
+        logOfTable.add("Table " #Nat.toText(tableNumber) # " was  Added by " #Principal.toText(caller) # "!");
+        return #ok(" Table  " #Nat.toText(tableNumber) # "  was Added! ");
+      };
+    };
   };
 
   // get all Table
   public shared query func getTables() : async [Table.Table] {
-    return Iter.toArray(Map.vals<Nat, Table.Table>(tableMap))
+    return Iter.toArray(Map.vals<Nat, Table.Table>(tableMap));
   };
 
-  ////////// Reserve Table
+  // Reserve Table
 
-  public shared ({ caller }) func reserveTableNew(tableId : Nat, comment : ?Text) : async Result.Result<Text, Text> {
-    switch (Table.reserve(tableMap, tableId, caller, comment)) {
+  public shared ({ caller }) func reserveTableNew(tableId : Nat) : async Result.Result<Text, Text> {
+    switch (Table.reserve(tableMap, tableId, caller)) {
       case (#ok(updatedTable)) {
         logOfTable.add("Table " #Nat.toText(tableId) # " was Reserved by " #Principal.toText(caller) # "!");
-        return #ok("Table reserved successfully.")
+        return #ok("Table reserved successfully.");
       };
       case (#err(errorMessage)) {
-        return #err(errorMessage)
-      }
-    }
+        return #err(errorMessage);
+      };
+    };
   };
 
   public shared ({ caller }) func unreserveTableNew(tableId : Nat) : async Result.Result<Text, Text> {
-    if (Table.canUnreserveTable(tableMap, userMap, caller, tableId) != true) {
-      return #err("The caller " #Principal.toText(caller) # " dose not Reserved this table ")
+    if (User.canPerform(userMap, caller, #UnreserveTable) != true) {
+      return #err("The caller " #Principal.toText(caller) # " dose not Reserved this table!");
     };
 
-    switch (Table.unreserve(userMap, caller, tableMap, tableId)) {
+    switch (Table.unreserve(tableMap, tableId)) {
       case (#ok(updatedTable)) {
-        logOfTable.add("Table " #Nat.toText(tableId) # " was Unreserved by " #Principal.toText(caller) # " ");
-        return #ok("Table " #Nat.toText(tableId) # " was Unreserved!")
+        logOfTable.add("Table " #Nat.toText(tableId) # " was Unreserved by " #Principal.toText(caller) # "!");
+        return #ok("Table " #Nat.toText(tableId) # " was Unreserved!");
       };
       case (#err(errorMessage)) {
-        return #err(errorMessage)
-      }
-    }
+        return #err(errorMessage);
+      };
+    };
   };
 
-  /////////////////////// Menu Functions
+  //----------------- Menu Functions -----------------//
 
+  var logOfMenu = Buffer.Buffer<Text>(0);
   stable var menuMap : Menu.MenuMap = Map.new<Nat, Menu.MenuItem>();
   private var nextMenuId : Nat = 0;
 
-  public shared ({ caller }) func addMenu(newMenu : Menu.MenuItem) : async Nat {
+  public shared ({ caller }) func addMenuItem(newMenuItem : Menu.MenuItem) : async Result.Result<Nat, Text> {
+    if (User.canPerform(userMap, caller, #ModifyMenuItem) != true) {
+      return #err("The caller " #Principal.toText(caller) # " dose not have permission to add menu item!");
+    };
+
     let menuId = nextMenuId;
     nextMenuId += 1;
-    menuMap := Menu.new(menuMap, caller, menuId, newMenu);
-    return menuId;
+
+    menuMap := Menu.new(menuMap, menuId, newMenuItem);
+
+    return #ok(menuId);
+  };
+
+  public shared ({ caller }) func removeMenuItem(menuId : Nat) : async Result.Result<Text, Text> {
+    if (User.canPerform(userMap, caller, #ModifyMenuItem) != true) {
+      return #err("The caller " #Principal.toText(caller) # " dose not have permission to remove menu item!");
+    };
+
+    if (Menu.get(menuMap, menuId) == null) {
+      return #err("The menu item with id " #Nat.toText(menuId) # " does not exist!");
+    };
+
+    Map.delete<Nat, Menu.MenuItem>(menuMap, nhash, menuId);
+
+    return #ok("The menu item with id " #Nat.toText(menuId) # " has been removed!");
+  };
+
+  public shared ({ caller }) func updateMenuItem(menuId : Nat, newMenuItem : Menu.MenuItem) : async Result.Result<Text, Text> {
+    if (User.canPerform(userMap, caller, #ModifyMenuItem) != true) {
+      return #err("The caller " #Principal.toText(caller) # " dose not have permission to update menu item!");
+    };
+
+    switch (Menu.get(menuMap, menuId)) {
+      case (null) {
+        return #err("The menu item with id " #Nat.toText(menuId) # " does not exist!");
+      };
+
+      case (?menuItem) {
+        let updatedMenuItem : Menu.MenuItem = {
+          name = newMenuItem.name;
+          price = newMenuItem.price;
+          discription = newMenuItem.discription;
+          point = menuItem.point;
+          image = newMenuItem.image;
+        };
+
+        menuMap := Menu.new(menuMap, menuId, updatedMenuItem);
+
+        return #ok("The menu item with id " #Nat.toText(menuId) # " has been updated successfully!");
+      };
+
+    };
 
   };
 

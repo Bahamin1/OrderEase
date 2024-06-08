@@ -1,85 +1,44 @@
-import Array "mo:base/Array";
-import Char "mo:base/Char";
-import Error "mo:base/Error";
 import Principal "mo:base/Principal";
-import Result "mo:base/Result";
 import Map "mo:map/Map";
-import { nhash; phash } "mo:map/Map";
-import Menu "Menu";
+import { phash } "mo:map/Map";
+
+import T "Types";
 
 // Define the enum for different operations
 module {
-
     public type UserRole = {
         #Guest;
         #Customer;
         #Employee;
         #Manager;
-        #Admin
-    };
-    public type AdminOperation = {
-        #ReserveTable;
-        #UnreserveTable;
-        #PayTable;
-        #HireManager;
-        #FireManager;
-        #HireEmployee;
-        #FireEmployee;
-        #AddMenuItem;
-        #RemoveMenuItem;
-        #UpdateMenuItem;
-        #ViewReports;
-        #ModifyEmployeePoints
-    };
-
-    public type Operation = {
-        #ReserveTable;
-        #UnreserveTable;
-        #PayTable;
-        #HireEmployee;
-        #FireEmployee;
-        #AddMenuItem;
-        #RemoveMenuItem;
-        #UpdateMenuItem;
-        #ViewReports;
-        #ModifyEmployeePoints
-    };
-
-    public type OrderType = {
-        #OnTable;
-        #TakeOut
-    };
-
-    public type Order = {
-        orderType : OrderType;
-        items : [Menu.MenuItem]
+        #Admin;
     };
 
     public type User = {
         name : Text;
         principal : Principal;
         role : UserRole;
-        allowedOperations : [Operation];
+        allowedOperations : [T.Operation];
         id : Nat;
         image : ?Blob;
         points : Nat;
-        orders : [Order]
+        orders : [T.Order];
     };
 
     public type UserMap = Map.Map<Principal, User>;
 
     //// Get User
     public func get(userMap : UserMap, principal : Principal) : ?User {
-        return Map.get(userMap, phash, principal)
+        return Map.get(userMap, phash, principal);
     };
 
     //// put User
     public func put(userMap : UserMap, p : Principal, user : User) : () {
-        return Map.set(userMap, phash, p, user)
+        return Map.set(userMap, phash, p, user);
     };
 
     ///// add New user specefic with oprations
-    public func new(userMap : UserMap, principal : Principal, name : Text, role : UserRole, allowedOperations : [Operation]) : UserMap {
+    public func new(userMap : UserMap, principal : Principal, name : Text, role : UserRole, allowedOperations : [T.Operation]) : UserMap {
         let id = Map.size(userMap) +1;
 
         let user : User = {
@@ -90,41 +49,31 @@ module {
             id = id;
             image = null;
             points = 0;
-            orders = []
+            orders = [];
         };
 
-        Map.set(userMap, phash, principal, user);
+        put(userMap, principal, user);
 
-        return userMap
-    };
-    //// Check user can call function and have opration for that...
-    public func canPerform(user : User, operation : AdminOperation) : Bool {
-        if (user.role == #Admin) return true;
-
-        for (o in user.allowedOperations.vals()) {
-            if (operation == o) return true
-        };
-
-        return false
+        return userMap;
     };
 
-    public func canPerformByPrincipal(userMap : UserMap, p : Principal, operation : AdminOperation) : Bool {
+    public func canPerform(userMap : UserMap, p : Principal, operation : T.Operation) : Bool {
         let user = get(userMap, p);
 
-        switch user {
+        switch (user) {
             case (null) {
-                return false
+                return false;
             };
             case (?user) {
                 if (user.role == #Admin) return true;
 
                 for (o in user.allowedOperations.vals()) {
-                    if (operation == o) return true
+                    if (operation == o) return true;
                 };
 
-                return false
-            }
-        }
+                return false;
+            };
+        };
     };
 
-}
+};

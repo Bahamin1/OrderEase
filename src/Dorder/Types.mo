@@ -4,7 +4,34 @@ import HashMap "mo:base/HashMap";
 import Nat8 "mo:base/Nat8";
 import Text "mo:base/Text";
 import Time "mo:base/Time";
+
+import Menu "Menu";
+
 module {
+    public type Operation = {
+        #ReserveTable;
+        #UnreserveTable;
+        #PayTable;
+        #HireManager;
+        #FireManager;
+        #HireEmployee;
+        #FireEmployee;
+        #ModifyTable;
+        #ModifyMenuItem;
+        #ViewReports;
+        #ModifyEmployeePoints;
+    };
+
+    public type OrderType = {
+        #OnTable;
+        #TakeOut;
+    };
+
+    public type Order = {
+        orderType : OrderType;
+        items : [Menu.MenuItem];
+    };
+
     public type Member = {
         name : Text;
         identity : Principal;
