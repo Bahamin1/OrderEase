@@ -1,6 +1,8 @@
 import Principal "mo:base/Principal";
 import Map "mo:map/Map";
 import { phash } "mo:map/Map";
+
+import P "Point";
 import T "Types";
 
 // Define the enum for different operations
@@ -10,7 +12,7 @@ module {
         #Customer;
         #Employee;
         #Manager;
-        #Admin
+        #Admin;
     };
 
     public type User = {
@@ -20,20 +22,21 @@ module {
         allowedOperations : [T.Operation];
         id : Nat;
         image : ?Blob;
-        points : Nat;
-        orders : [T.Order]
+        buyingPoint : Nat8;
+        points : [P.EmployeePoint];
+        orders : [T.Order];
     };
 
     public type UserMap = Map.Map<Principal, User>;
 
     //// Get User
     public func get(userMap : UserMap, principal : Principal) : ?User {
-        return Map.get(userMap, phash, principal)
+        return Map.get(userMap, phash, principal);
     };
 
     //// put User
     public func put(userMap : UserMap, p : Principal, user : User) : () {
-        return Map.set(userMap, phash, p, user)
+        return Map.set(userMap, phash, p, user);
     };
 
     ///// add New user specefic with oprations
@@ -47,32 +50,33 @@ module {
             allowedOperations = allowedOperations;
             id = id;
             image = null;
-            points = 0;
-            orders = []
+            buyingPoint = 0;
+            points = [];
+            orders = [];
         };
 
-        Map.set(userMap, phash, principal, user);
+        put(userMap, principal, user);
 
-        return userMap
+        return userMap;
     };
 
     public func canPerform(userMap : UserMap, p : Principal, operation : T.Operation) : Bool {
         let user = get(userMap, p);
 
-        switch user {
+        switch (user) {
             case (null) {
-                return false
+                return false;
             };
             case (?user) {
                 if (user.role == #Admin) return true;
 
                 for (o in user.allowedOperations.vals()) {
-                    if (operation == o) return true
+                    if (operation == o) return true;
                 };
 
-                return false
-            }
-        }
+                return false;
+            };
+        };
     };
 
-}
+};
