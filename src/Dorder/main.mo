@@ -18,6 +18,7 @@ import Clone "mo:map/Map/modules/clone";
 import SB "mo:stable-buffer";
 
 import Menu "Menu";
+import Point "Point";
 import Table "Table";
 import Type "Types";
 import User "User";
@@ -177,16 +178,13 @@ shared ({ caller = manager }) actor class Dorder() = this {
   stable var menuMap : Menu.MenuMap = Map.new<Nat, Menu.MenuItem>();
   private var nextMenuId : Nat = 0;
 
-  public shared ({ caller }) func addMenuItem(newMenuItem : Menu.MenuItem) : async Result.Result<Nat, Text> {
+  public shared ({ caller }) func addMenuItem(newMenuItem : Menu.NewMenuItem) : async Result.Result<Nat, Text> {
     if (User.canPerform(userMap, caller, #ModifyMenuItem) != true) {
       return #err("The caller " #Principal.toText(caller) # " dose not have permission to add menu item!");
     };
-
     let menuId = nextMenuId;
-    nextMenuId += 1;
-
     menuMap := Menu.new(menuMap, menuId, newMenuItem);
-
+    nextMenuId += 1;
     return #ok(menuId);
   };
 
@@ -204,7 +202,7 @@ shared ({ caller = manager }) actor class Dorder() = this {
     return #ok("The menu item with id " #Nat.toText(menuId) # " has been removed!");
   };
 
-  public shared ({ caller }) func updateMenuItem(menuId : Nat, newMenuItem : Menu.MenuItem) : async Result.Result<Text, Text> {
+  public shared ({ caller }) func updateMenuItem(menuId : Nat, newMenuItem : Menu.NewMenuItem) : async Result.Result<Text, Text> {
     if (User.canPerform(userMap, caller, #ModifyMenuItem) != true) {
       return #err("The caller " #Principal.toText(caller) # " dose not have permission to update menu item!");
     };
@@ -216,9 +214,11 @@ shared ({ caller = manager }) actor class Dorder() = this {
 
       case (?menuItem) {
         let updatedMenuItem : Menu.MenuItem = {
+          id = menuItem.id;
           name = newMenuItem.name;
           price = newMenuItem.price;
-          discription = newMenuItem.discription;
+          stock = newMenuItem.stock;
+          description = newMenuItem.description;
           point = menuItem.point;
           image = newMenuItem.image;
         };
@@ -238,6 +238,40 @@ shared ({ caller = manager }) actor class Dorder() = this {
 
   public query func getItem(menuId : Nat) : async ?Menu.MenuItem {
     return Menu.get(menuMap, menuId);
+  };
+
+  //--------------------------- Point Functions ----------------------------\\
+
+  public shared ({ caller }) func addPointMenuItem(menuId : Nat, point : Point.MenuPoint) : async Result.Result<Text, Text> {
+    if (User.canPerform(userMap, caller, #ModifyMenuItemPoint) != true) {
+      return #err("The caller " #Principal.toText(caller) # " dose not have permission to Point an item!");
+    };
+
+    switch (Menu.get(menuMap, menuId)) {
+      case null {
+        return #err("The menu item with id " #Nat.toText(menuId) # " does not exist!");
+      };
+
+      case (?menuItem) {
+
+        let newMenuPoint = Buffer.fromArray<Point.MenuPoint>(menuItem.point);
+        newMenuPoint.add(point);
+
+        let newMenuItem : Menu.MenuItem = {
+          id = menuItem.id;
+          name = menuItem.name;
+          price = menuItem.price;
+          stock = menuItem.stock;
+          description = menuItem.description;
+          point = Buffer.toArray(newMenuPoint);
+          image = menuItem.image;
+        };
+
+        menuMap := Menu.new(menuMap, menuId, newMenuItem);
+        logOfMenu.add("The User " #Principal.toText(caller) # " added a point to the menu item with id " #Nat.toText(menuId));
+        return #ok("Point added to menu item " #Nat.toText(menuId) # "!");
+      };
+    };
   };
 
   /////////////////////////////////////

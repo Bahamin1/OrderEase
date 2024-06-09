@@ -2,6 +2,7 @@ import Principal "mo:base/Principal";
 import Map "mo:map/Map";
 import { phash } "mo:map/Map";
 
+import P "Point";
 import T "Types";
 
 // Define the enum for different operations
@@ -21,7 +22,8 @@ module {
         allowedOperations : [T.Operation];
         id : Nat;
         image : ?Blob;
-        points : Nat;
+        buyingPoint : Nat8;
+        points : [P.EmployeePoint];
         orders : [T.Order];
     };
 
@@ -48,7 +50,8 @@ module {
             allowedOperations = allowedOperations;
             id = id;
             image = null;
-            points = 0;
+            buyingPoint = 0;
+            points = [];
             orders = [];
         };
 

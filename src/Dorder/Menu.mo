@@ -1,14 +1,30 @@
+import Buffer "mo:base/Buffer";
+import Result "mo:base/Result";
+import Time "mo:base/Time";
 import Map "mo:map/Map";
 import { nhash } "mo:map/Map";
+
+import Point "Point";
 
 module {
 
     public type MenuItem = {
+        id : Nat;
         name : Text;
         price : Nat;
-        discription : Text;
-        point : Nat8;
+        stock : [Bool];
+        description : Text;
+        point : [Point.MenuPoint];
         image : ?Blob;
+    };
+
+    public type NewMenuItem = {
+        name : Text;
+        price : Nat;
+        stock : [Bool];
+        description : Text;
+        image : ?Blob;
+
     };
 
     public type MenuMap = Map.Map<Nat, MenuItem>;
