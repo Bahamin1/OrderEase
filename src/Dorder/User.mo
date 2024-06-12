@@ -1,4 +1,5 @@
 import Principal "mo:base/Principal";
+import Result "mo:base/Result";
 import Map "mo:map/Map";
 import { phash } "mo:map/Map";
 
@@ -22,8 +23,8 @@ module {
         allowedOperations : [T.Operation];
         id : Nat;
         image : ?Blob;
-        buyingPoint : Nat8;
-        points : [P.EmployeePoint];
+        buyingScore : Nat8;
+        point : [P.EmployeePoint];
         orders : [T.Order];
     };
 
@@ -50,8 +51,8 @@ module {
             allowedOperations = allowedOperations;
             id = id;
             image = null;
-            buyingPoint = 0;
-            points = [];
+            buyingScore = 0;
+            point = [];
             orders = [];
         };
 
@@ -79,4 +80,22 @@ module {
         };
     };
 
+    public func hasPoint(userMap : UserMap, caller : Principal, employeeId : Principal) : Bool {
+        let user = get(userMap, employeeId);
+
+        switch (user) {
+            case (null) {
+                return false;
+            };
+            case (?user) {
+                for (point in user.point.vals()) {
+                    if (point.pointBy == caller) {
+                        return true;
+                    };
+                };
+            };
+
+        };
+        return false;
+    };
 };

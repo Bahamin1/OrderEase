@@ -250,6 +250,7 @@ shared ({ caller = manager }) actor class Dorder() = this {
 
         let newMenuPoint = Buffer.fromArray<Point.MenuPoint>(menuItem.point);
         newMenuPoint.add({
+          id = menuId;
           comment = comment;
           pointBy = caller;
           point = point;
@@ -280,6 +281,7 @@ shared ({ caller = manager }) actor class Dorder() = this {
       return #err("this member doesnt point this menu");
     };
     let newPoint : Point.MenuPoint = {
+      id = menuId;
       comment = comment;
       pointBy = caller;
       point = point;
@@ -296,6 +298,50 @@ shared ({ caller = manager }) actor class Dorder() = this {
         return #ok("Update Success!");
       };
     };
+  };
+
+  public shared ({ caller }) func addPointToEmployee(employeeId : Principal, comment : ?Text, point : Point.Numb) : async Result.Result<Text, Text> {
+    if (User.canPerform(userMap, caller, #ModifyEmployeePoints) != true) {
+      return #err("the caller " #Principal.toText(caller) # " dose not have permission Point to Emoloyee");
+    };
+    if (User.hasPoint(userMap, caller, employeeId) == true) {
+      return #err("Member " #Principal.toText(caller) # " already have a Point this employee!");
+    };
+    switch (User.get(userMap, employeeId)) {
+      case (null) {
+        return #err("The user with principal " #Principal.toText(employeeId) # " does not exist!");
+      };
+      case (?user) {
+        let employeePoint = Buffer.fromArray<Point.EmployeePoint>(user.point);
+        employeePoint.add({
+          pointBy = caller;
+          comment = comment;
+          point = point;
+          cratedAt = Time.now();
+        });
+        let updateEmployee : User.User = {
+          name = user.name;
+          principal = employeeId;
+          role = user.role;
+          allowedOperations = user.allowedOperations;
+          id = user.id;
+          image = user.image;
+          buyingScore = user.buyingScore;
+          point = Buffer.toArray(employeePoint);
+          orders = user.orders;
+        };
+        User.put(userMap, employeeId, updateEmployee);
+        logOfMembers.add("Point added to employee " #Principal.toText(p) # " successfully by " #Principal.toText(caller) # ". ");
+        return #ok("Point added to employee " #Principal.toText(p) # " successfully!");
+      };
+    };
+  };
+
+  public shared ({ caller }) func editPointEmployee(menuId : Nat, employeeId : Principal, point : Point.Numb, comment : ?Text, suggest : Bool) : async Result.Result<(), Text> {
+    if (User.hasPoint(userMap, employeeId) != true) {
+      return #err("This caller with principal " #Principal.toText(caller) # " does not have a point for Employee!");
+    };
+
   };
 
   // public shared ({ caller }) func editPointItem(menuId : Nat, point : Point.Numb, comment : ?Text, suggest : Bool, image : ?[Blob]) : async Result.Result<Text, Text> {

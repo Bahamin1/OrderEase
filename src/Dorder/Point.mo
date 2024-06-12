@@ -23,6 +23,7 @@ module {
     };
 
     public type EmployeePoint = {
+        pointBy : Principal;
         comment : ?Text;
         point : Numb;
         cratedAt : Time.Time;
