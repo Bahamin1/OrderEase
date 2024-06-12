@@ -31,7 +31,7 @@ shared ({ caller = manager }) actor class Dorder() = this {
   // TODO: Replace this with Manager
   let guest : Principal = Principal.fromText("2vxsx-fae");
 
-  userMap := User.new(userMap, guest, "ADMIN", #Admin, []);
+  User.new(userMap, guest, "ADMIN", #Admin, []);
 
   // Buffer loG OF Members
   var logOfMembers = Buffer.Buffer<Text>(0);
@@ -49,10 +49,11 @@ shared ({ caller = manager }) actor class Dorder() = this {
         let allowedOperations = [
           #ReserveTable,
           #PayTable,
+          #ModifyMenuItemPoint,
           #ModifyEmployeePoints,
         ];
 
-        userMap := User.new(userMap, caller, name, #Customer, allowedOperations);
+        User.new(userMap, caller, name, #Customer, allowedOperations);
         logOfMembers.add("Member with Principal " # Principal.toText(caller) # " Registered!");
         return #ok();
       };
@@ -67,12 +68,12 @@ shared ({ caller = manager }) actor class Dorder() = this {
 
     switch (User.get(userMap, principal)) {
       case (?is) {
-        userMap := User.new(userMap, is.principal, is.name, #Manager, allowedOperations);
+        User.new(userMap, is.principal, is.name, #Manager, allowedOperations);
         logOfMembers.add("Member " #Principal.toText(principal) # " updated to Manager By " # Principal.toText(caller) # "!");
         return #ok();
       };
       case (null) {
-        userMap := User.new(userMap, principal, name, #Manager, allowedOperations);
+        User.new(userMap, principal, name, #Manager, allowedOperations);
         logOfMembers.add("New Manager " # Principal.toText(principal) # " Added  By " # Principal.toText(caller) # "!");
         return #ok();
       };
@@ -87,12 +88,12 @@ shared ({ caller = manager }) actor class Dorder() = this {
 
     switch (User.get(userMap, principal)) {
       case (?is) {
-        userMap := User.new(userMap, is.principal, is.name, #Employee, allowedOperations);
-        logOfMembers.add("Member " #Principal.toText(principal) # " updated By " # Principal.toText(caller) # "!");
+        User.new(userMap, is.principal, is.name, #Employee, allowedOperations);
+        logOfMembers.add("Member " #Principal.toText(principal) # " updated to Employee By " # Principal.toText(caller) # "!");
         return #ok();
       };
       case (null) {
-        userMap := User.new(userMap, principal, name, #Employee, allowedOperations);
+        User.new(userMap, principal, name, #Employee, allowedOperations);
         logOfMembers.add("New Member " # Principal.toText(principal) # " Added By " # Principal.toText(caller) # "!");
         return #ok();
       };
@@ -111,6 +112,7 @@ shared ({ caller = manager }) actor class Dorder() = this {
   };
 
   //----------------- Table Functions -----------------//
+
   stable var tableMap : Table.TableMap = Map.new<Nat, Table.Table>();
   var logOfTable : Buffer.Buffer<Text> = Buffer.Buffer<Text>(0);
 
@@ -176,16 +178,34 @@ shared ({ caller = manager }) actor class Dorder() = this {
 
   var logOfMenu = Buffer.Buffer<Text>(0);
   stable var menuMap : Menu.MenuMap = Map.new<Nat, Menu.MenuItem>();
-  private var nextMenuId : Nat = 0;
+
+  public shared ({ caller }) func getMenuLog() : async [Text] {
+    return Buffer.toArray(logOfMenu);
+  };
 
   public shared ({ caller }) func addMenuItem(newMenuItem : Menu.NewMenuItem) : async Result.Result<Nat, Text> {
     if (User.canPerform(userMap, caller, #ModifyMenuItem) != true) {
       return #err("The caller " #Principal.toText(caller) # " dose not have permission to add menu item!");
     };
-    let menuId = nextMenuId;
-    menuMap := Menu.new(menuMap, menuId, newMenuItem);
-    nextMenuId += 1;
-    return #ok(menuId);
+    Menu.new(menuMap, newMenuItem);
+    return #ok(Map.size(menuMap));
+  };
+
+  public shared ({ caller }) func updateMenuItem(menuId : Nat, newMenuItem : Menu.NewMenuItem) : async Result.Result<Text, Text> {
+    if (User.canPerform(userMap, caller, #ModifyMenuItem) != true) {
+      return #err("The caller " #Principal.toText(caller) # " dose not have permission to update menu item!");
+    };
+
+    switch (Menu.update(menuMap, menuId, newMenuItem)) {
+      case (#ok(msg)) {
+        logOfMenu.add("Item with id " #Nat.toText(menuId) # " has been updated by " #Principal.toText(caller) # ".");
+        return #ok(msg);
+      };
+      case (#err(errorMessage)) {
+        return #err(errorMessage);
+      };
+    };
+
   };
 
   public shared ({ caller }) func removeMenuItem(menuId : Nat) : async Result.Result<Text, Text> {
@@ -198,38 +218,8 @@ shared ({ caller = manager }) actor class Dorder() = this {
     };
 
     Map.delete<Nat, Menu.MenuItem>(menuMap, nhash, menuId);
-
+    logOfMenu.add("Item with id " #Nat.toText(menuId) # " has been removed from the menu by " #Principal.toText(caller) # ".");
     return #ok("The menu item with id " #Nat.toText(menuId) # " has been removed!");
-  };
-
-  public shared ({ caller }) func updateMenuItem(menuId : Nat, newMenuItem : Menu.NewMenuItem) : async Result.Result<Text, Text> {
-    if (User.canPerform(userMap, caller, #ModifyMenuItem) != true) {
-      return #err("The caller " #Principal.toText(caller) # " dose not have permission to update menu item!");
-    };
-
-    switch (Menu.get(menuMap, menuId)) {
-      case (null) {
-        return #err("The menu item with id " #Nat.toText(menuId) # " does not exist!");
-      };
-
-      case (?menuItem) {
-        let updatedMenuItem : Menu.MenuItem = {
-          id = menuItem.id;
-          name = newMenuItem.name;
-          price = newMenuItem.price;
-          stock = newMenuItem.stock;
-          description = newMenuItem.description;
-          point = menuItem.point;
-          image = newMenuItem.image;
-        };
-
-        menuMap := Menu.new(menuMap, menuId, updatedMenuItem);
-
-        return #ok("The menu item with id " #Nat.toText(menuId) # " has been updated successfully!");
-      };
-
-    };
-
   };
 
   public shared query func getAllMenuItems() : async [Menu.MenuItem] {
@@ -242,7 +232,7 @@ shared ({ caller = manager }) actor class Dorder() = this {
 
   //--------------------------- Point Functions ----------------------------\\
 
-  public shared ({ caller }) func addPointMenuItem(menuId : Nat, point : Point.MenuPoint) : async Result.Result<Text, Text> {
+  public shared ({ caller }) func addPointToItem(menuId : Nat, point : Point.Numb, suggest : Bool, comment : ?Text, image : ?[Blob]) : async Result.Result<Text, Text> {
     if (User.canPerform(userMap, caller, #ModifyMenuItemPoint) != true) {
       return #err("The caller " #Principal.toText(caller) # " dose not have permission to Point an item!");
     };
@@ -254,8 +244,19 @@ shared ({ caller = manager }) actor class Dorder() = this {
 
       case (?menuItem) {
 
+        if (Menu.hasPoint(menuMap, menuId, caller) == true) {
+          return #err("The caller " #Principal.toText(caller) # " has already pointed this item!");
+        };
+
         let newMenuPoint = Buffer.fromArray<Point.MenuPoint>(menuItem.point);
-        newMenuPoint.add(point);
+        newMenuPoint.add({
+          comment = comment;
+          pointBy = caller;
+          point = point;
+          suggest = suggest;
+          cratedAt = Time.now();
+          image = image;
+        });
 
         let newMenuItem : Menu.MenuItem = {
           id = menuItem.id;
@@ -267,12 +268,60 @@ shared ({ caller = manager }) actor class Dorder() = this {
           image = menuItem.image;
         };
 
-        menuMap := Menu.new(menuMap, menuId, newMenuItem);
+        Menu.put(menuMap, menuId, newMenuItem);
         logOfMenu.add("The User " #Principal.toText(caller) # " added a point to the menu item with id " #Nat.toText(menuId));
         return #ok("Point added to menu item " #Nat.toText(menuId) # "!");
       };
     };
   };
+
+  public shared ({ caller }) func updateMenuPoint(menuId : Nat, comment : ?Text, point : Point.Numb, suggest : Bool, image : ?[Blob]) : async Result.Result<Text, Text> {
+    if (Menu.hasPoint(menuMap, menuId, caller) != true) {
+      return #err("this member doesnt point this menu");
+    };
+    let newPoint : Point.MenuPoint = {
+      comment = comment;
+      pointBy = caller;
+      point = point;
+      suggest = suggest;
+      cratedAt = Time.now();
+      image = image;
+    };
+    let filteredPoint = Menu.replaceMenuPointByPrincipal(menuMap, menuId, caller, newPoint);
+    switch (filteredPoint) {
+      case (false) {
+        return #err(" " #Principal.toText(caller) # " have not any Point in this Menu ID !");
+      };
+      case (true) {
+        return #ok("Update Success!");
+      };
+    };
+  };
+
+  // public shared ({ caller }) func editPointItem(menuId : Nat, point : Point.Numb, comment : ?Text, suggest : Bool, image : ?[Blob]) : async Result.Result<Text, Text> {
+  //   let item = Menu.get(menuMap, menuId);
+  //   switch (item) {
+  //     case (null) {
+  //       return #err("The menu item with id " #Nat.toText(menuId) # " does not exist!");
+  //     };
+  //     case (?Item) {
+  //       if (Menu.hasPoint(menuMap, menuId, caller) == true) {
+  //         let itemUpdate : Point.MenuPoint = {
+  //           id = menuId;
+  //           comment = comment;
+  //           pointBy = caller;
+  //           point = point;
+  //           suggest = suggest;
+  //           cratedAt = Time.now();
+  //           image = image;
+  //         };
+  //         Menu.updateMenuPoint(menuMap, menuId, caller, itemUpdate);
+  //       };
+  //       return #ok("d");
+
+  //     };
+  //   };
+  // };
 
   /////////////////////////////////////
   ////////////////////////////////////

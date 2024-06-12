@@ -9,7 +9,7 @@ import { nhash } "mo:map/Map";
 
 import User "User";
 
-module {
+module Table {
     // Table type definition
     public type Table = {
         id : Nat;
@@ -48,6 +48,7 @@ module {
 
         Debug.print("Tables::" #Nat.toText(tableNumber) # ":: initialized ");
         Debug.print(debug_show (tables));
+        return;
     };
 
     // Function to reserve a table

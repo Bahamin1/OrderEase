@@ -7,7 +7,7 @@ import Time "mo:base/Time";
 
 import Menu "Menu";
 
-module {
+module Types {
     public type Operation = {
         #ReserveTable;
         #UnreserveTable;

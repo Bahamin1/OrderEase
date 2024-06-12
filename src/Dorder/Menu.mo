@@ -1,4 +1,8 @@
+import Array "mo:base/Array";
 import Buffer "mo:base/Buffer";
+import Iter "mo:base/Iter";
+import List "mo:base/List";
+import Nat "mo:base/Nat";
 import Result "mo:base/Result";
 import Time "mo:base/Time";
 import Map "mo:map/Map";
@@ -6,13 +10,13 @@ import { nhash } "mo:map/Map";
 
 import Point "Point";
 
-module {
+module Menu {
 
     public type MenuItem = {
         id : Nat;
         name : Text;
         price : Nat;
-        stock : [Bool];
+        stock : Bool;
         description : Text;
         point : [Point.MenuPoint];
         image : ?Blob;
@@ -21,7 +25,7 @@ module {
     public type NewMenuItem = {
         name : Text;
         price : Nat;
-        stock : [Bool];
+        stock : Bool;
         description : Text;
         image : ?Blob;
 
@@ -38,9 +42,95 @@ module {
         return Map.set<Nat, MenuItem>(menuMap, nhash, key, value);
     };
 
-    public func new(menuMap : MenuMap, menuId : Nat, newMenu : MenuItem) : MenuMap {
-        put(menuMap, menuId, newMenu);
-        return menuMap;
+    public func new(menuMap : MenuMap, newMenuItem : NewMenuItem) : () {
+        let itemId = Map.size(menuMap) +1;
+
+        let newMenu : MenuItem = {
+            id = itemId;
+            name = newMenuItem.name;
+            price = newMenuItem.price;
+            stock = newMenuItem.stock;
+            description = newMenuItem.description;
+            point = [];
+            image = newMenuItem.image;
+        };
+
+        put(menuMap, itemId, newMenu);
+        return;
     };
 
+    public func update(menuMap : MenuMap, menuId : Nat, newMenuItem : NewMenuItem) : Result.Result<Text, Text> {
+        switch (get(menuMap, menuId)) {
+            case (null) {
+                return #err("The menu item with id " #Nat.toText(menuId) # " does not exist!");
+            };
+            case (?item) {
+                let updateItem : MenuItem = {
+
+                    id = menuId;
+                    name = newMenuItem.name;
+                    price = newMenuItem.price;
+                    stock = newMenuItem.stock;
+                    description = newMenuItem.description;
+                    point = item.point;
+                    image = newMenuItem.image;
+                };
+
+                put(menuMap, menuId, updateItem);
+                return #ok("The menu item with id " #Nat.toText(menuId) # " has been updated!");
+
+            };
+        };
+
+    };
+
+    public func hasPoint(menuMap : MenuMap, menuId : Nat, p : Principal) : Bool {
+        let menu = get(menuMap, menuId);
+        switch (menu) {
+            case (null) {
+                return false;
+            };
+            case (?menu) {
+                for (point in menu.point.vals()) {
+                    if (point.pointBy == p) {
+                        return true;
+                    };
+                };
+            };
+
+        };
+        return false;
+    };
+
+    public func replaceMenuPointByPrincipal(menuMap : MenuMap, itemId : Nat, principal : Principal, newPoint : Point.MenuPoint) : Bool {
+        switch (get(menuMap, itemId)) {
+            case (?item) {
+                // Filter out the specific MenuPoint
+                let updatedPoints = Array.filter<Point.MenuPoint>(
+                    item.point,
+                    func(point) {
+                        point.pointBy != principal;
+                    },
+                );
+
+                // Add the new MenuPoint
+                let newPoints = Array.append<Point.MenuPoint>(updatedPoints, [newPoint]);
+
+                // Update the MenuItem with the new points array
+
+                let updatedItem : MenuItem = {
+                    id = itemId;
+                    name = item.name;
+                    price = item.price;
+                    stock = item.stock;
+                    description = item.description;
+                    point = newPoints;
+                    image = item.image;
+                };
+                put(menuMap, itemId, updatedItem);
+                return true;
+            };
+            case null { return false };
+        };
+    };
 };

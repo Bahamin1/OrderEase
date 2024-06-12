@@ -40,7 +40,7 @@ module {
     };
 
     ///// add New user specefic with oprations
-    public func new(userMap : UserMap, principal : Principal, name : Text, role : UserRole, allowedOperations : [T.Operation]) : UserMap {
+    public func new(userMap : UserMap, principal : Principal, name : Text, role : UserRole, allowedOperations : [T.Operation]) : () {
         let id = Map.size(userMap) +1;
 
         let user : User = {
@@ -57,7 +57,7 @@ module {
 
         put(userMap, principal, user);
 
-        return userMap;
+        return;
     };
 
     public func canPerform(userMap : UserMap, p : Principal, operation : T.Operation) : Bool {
