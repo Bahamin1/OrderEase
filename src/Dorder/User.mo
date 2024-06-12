@@ -41,15 +41,24 @@ module {
 
     ///// add New user specefic with oprations
     public func new(userMap : UserMap, principal : Principal, name : Text, role : UserRole, allowedOperations : [T.Operation]) : () {
-        let id = Map.size(userMap) +1;
+        public func new(userMap : UserMap, principal : Principal, name : Text, role : UserRole, allowedOperations : [T.Operation]) : UserMap {
+            let id = Map.size(userMap) +1;
 
-        let user : User = {
-            name = name;
-            principal = principal;
-            role = role;
-            allowedOperations = allowedOperations;
-            id = id;
-            image = null;
+            let user : User = {
+                name = name;
+                principal = principal;
+                role = role;
+                allowedOperations = allowedOperations;
+                id = id;
+                image = null;
+                buyingPoint = 0;
+                points = [];
+                orders = [];
+            };
+
+            put(userMap, principal, user);
+
+            return;
             buyingPoint = 0;
             points = [];
             orders = [];
@@ -57,7 +66,7 @@ module {
 
         put(userMap, principal, user);
 
-        return;
+        return userMap;
     };
 
     public func canPerform(userMap : UserMap, p : Principal, operation : T.Operation) : Bool {

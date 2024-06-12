@@ -7,27 +7,48 @@ import Time "mo:base/Time";
 
 import Menu "Menu";
 
-module Types {
-    public type Operation = {
-        #ReserveTable;
-        #UnreserveTable;
-        #PayTable;
-        #HireManager;
-        #FireManager;
-        #HireEmployee;
-        #FireEmployee;
-        #ModifyTable;
-        #ModifyMenuItem;
-        #ModifyMenuItemPoint;
-        #ViewReports;
-        #ModifyEmployeePoints;
-    };
+module {public type Operation = {
+#ReserveTable;
+#UnreserveTable;
+#PayTable;
+#HireManager;
+#FireManager;
+#HireEmployee;
+#FireEmployee;
+#ModifyTable;
+#ModifyMenuItem;
+#ModifyMenuItemPoint;
+#ViewReports;
+#ModifyEmployeePoints;
 
-    public type OrderType = {
-        #OnTable;
-        #TakeOut;
-    };
+import Menu "Menu";
 
+module Types {public type Operation = {
+    #ReserveTable;
+    #UnreserveTable;
+    #PayTable;
+    #HireManager;
+    #FireManager;
+    #HireEmployee;
+    #FireEmployee;
+    #ModifyTable;
+    #ModifyMenuItem;
+    #ModifyMenuItemPoint;
+    #ViewReports;
+    #ModifyEmployeePoints;
+};
+
+public type OrderType = {
+#OnTable;
+#TakeOut;
+public type OrderType = {
+    #OnTable;
+    #TakeOut;
+};
+
+public type Order = {
+    orderType : OrderType;
+    items : [Menu.MenuItem];
     public type Order = {
         orderType : OrderType;
         items : [Menu.MenuItem];
