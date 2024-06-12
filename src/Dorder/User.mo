@@ -1,9 +1,11 @@
+import Array "mo:base/Array";
 import Principal "mo:base/Principal";
 import Result "mo:base/Result";
 import Map "mo:map/Map";
 import { phash } "mo:map/Map";
 
 import P "Point";
+import Point "Point";
 import T "Types";
 
 // Define the enum for different operations
@@ -97,5 +99,39 @@ module {
 
         };
         return false;
+    };
+
+    public func replaceUserPointByPrincipal(userMap : UserMap, employeeId : Principal, newPoint : Point.EmployeePoint) : Bool {
+        switch (get(userMap, employeeId)) {
+            case (?user) {
+                // Filter out the specific MenuPoint
+                let updatedPoints = Array.filter<Point.EmployeePoint>(
+                    user.point,
+                    func(point) {
+                        point.pointBy != employeeId;
+                    },
+                );
+
+                // Add the new MenuPoint
+                let newPoints = Array.append<Point.EmployeePoint>(updatedPoints, [newPoint]);
+
+                // Update the Menuuser with the new points array
+
+                let updateduser : User = {
+                    name = user.name;
+                    principal = user.principal;
+                    role = user.role;
+                    allowedOperations = user.allowedOperations;
+                    id = user.id;
+                    image = user.image;
+                    buyingScore = user.buyingScore;
+                    point = newPoints;
+                    orders = user.orders;
+                };
+                put(userMap, employeeId, updateduser);
+                return true;
+            };
+            case null { return false };
+        };
     };
 };

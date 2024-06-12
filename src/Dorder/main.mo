@@ -331,15 +331,31 @@ shared ({ caller = manager }) actor class Dorder() = this {
           orders = user.orders;
         };
         User.put(userMap, employeeId, updateEmployee);
-        logOfMembers.add("Point added to employee " #Principal.toText(p) # " successfully by " #Principal.toText(caller) # ". ");
-        return #ok("Point added to employee " #Principal.toText(p) # " successfully!");
+        logOfMembers.add("Point added to employee " #Principal.toText(employeeId) # " successfully by " #Principal.toText(caller) # ". ");
+        return #ok("Point added to employee " #Principal.toText(employeeId) # " successfully!");
       };
     };
   };
 
-  public shared ({ caller }) func editPointEmployee(menuId : Nat, employeeId : Principal, point : Point.Numb, comment : ?Text, suggest : Bool) : async Result.Result<(), Text> {
-    if (User.hasPoint(userMap, employeeId) != true) {
+  public shared ({ caller }) func editPointEmployee(employeeId : Principal, point : Point.Numb, comment : ?Text, suggest : Bool) : async Result.Result<Text, Text> {
+    if (User.hasPoint(userMap, caller, employeeId) != true) {
       return #err("This caller with principal " #Principal.toText(caller) # " does not have a point for Employee!");
+    };
+
+    let newPoint : Point.EmployeePoint = {
+      pointBy = caller;
+      comment = comment;
+      point = point;
+      cratedAt = Time.now();
+    };
+    let filteredPoint = User.replaceUserPointByPrincipal(userMap, employeeId, newPoint);
+    switch (filteredPoint) {
+      case (false) {
+        return #err("" #Principal.toText(caller) # " have not any Point in this employee ID !");
+      };
+      case (true) {
+        return #ok("Update Success!");
+      };
     };
 
   };
