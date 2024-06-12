@@ -1,12 +1,6 @@
 import Array "mo:base/Array";
-import Blob "mo:base/Blob";
 import Buffer "mo:base/Buffer";
-import Debug "mo:base/Debug";
-import Float "mo:base/Float";
-import Hash "mo:base/Hash";
-import HashMap "mo:base/HashMap";
 import Iter "mo:base/Iter";
-import { range; toArray } "mo:base/Iter";
 import Nat "mo:base/Nat";
 import Principal "mo:base/Principal";
 import Result "mo:base/Result";
@@ -14,8 +8,6 @@ import Text "mo:base/Text";
 import Time "mo:base/Time";
 import Map "mo:map/Map";
 import { nhash; phash } "mo:map/Map";
-import Clone "mo:map/Map/modules/clone";
-import SB "mo:stable-buffer";
 
 import Menu "Menu";
 import Point "Point";
