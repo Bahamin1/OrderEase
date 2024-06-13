@@ -9,6 +9,7 @@ import Time "mo:base/Time";
 import Map "mo:map/Map";
 import { nhash; phash } "mo:map/Map";
 
+import Log "Log";
 import Menu "Menu";
 import Point "Point";
 import Table "Table";
@@ -19,8 +20,9 @@ shared ({ caller = manager }) actor class Dorder() = this {
 
   // Users FuncTion
   stable var userMap : User.UserMap = Map.new<Principal, User.User>();
+  stable var logMap : Log.LogMap = Map.new<Nat, Log.Log>();
 
-  // TODO: Replace this with Manager
+  // TODO: Replace this with Manager to anonymus role
   let guest : Principal = Principal.fromText("2vxsx-fae");
 
   User.new(userMap, guest, "ADMIN", #Admin, []);
@@ -46,7 +48,7 @@ shared ({ caller = manager }) actor class Dorder() = this {
         ];
 
         User.new(userMap, caller, name, #Customer, allowedOperations);
-        logOfMembers.add("Member with Principal " # Principal.toText(caller) # " Registered!");
+        Log.add(logMap, #Member, "Member with Principal " # Principal.toText(caller) # " Registered!");
         return #ok();
       };
     };
@@ -61,12 +63,12 @@ shared ({ caller = manager }) actor class Dorder() = this {
     switch (User.get(userMap, principal)) {
       case (?is) {
         User.new(userMap, is.principal, is.name, #Manager, allowedOperations);
-        logOfMembers.add("Member " #Principal.toText(principal) # " updated to Manager By " # Principal.toText(caller) # "!");
+        Log.add(logMap, #Member, "Member " #Principal.toText(principal) # " updated to Manager By " # Principal.toText(caller) # "!");
         return #ok();
       };
       case (null) {
         User.new(userMap, principal, name, #Manager, allowedOperations);
-        logOfMembers.add("New Manager " # Principal.toText(principal) # " Added  By " # Principal.toText(caller) # "!");
+        Log.add(logMap, #Member, "New Manager " # Principal.toText(principal) # " Added  By " # Principal.toText(caller) # "!");
         return #ok();
       };
     };
@@ -81,12 +83,12 @@ shared ({ caller = manager }) actor class Dorder() = this {
     switch (User.get(userMap, principal)) {
       case (?is) {
         User.new(userMap, is.principal, is.name, #Employee, allowedOperations);
-        logOfMembers.add("Member " #Principal.toText(principal) # " updated to Employee By " # Principal.toText(caller) # "!");
+        Log.add(logMap, #Member, "Member " #Principal.toText(principal) # " updated to Employee By " # Principal.toText(caller) # "!");
         return #ok();
       };
       case (null) {
         User.new(userMap, principal, name, #Employee, allowedOperations);
-        logOfMembers.add("New Member " # Principal.toText(principal) # " Added By " # Principal.toText(caller) # "!");
+        Log.add(logMap, #Member, "New Member " # Principal.toText(principal) # " Added By " # Principal.toText(caller) # "!");
         return #ok();
       };
     };
@@ -125,7 +127,7 @@ shared ({ caller = manager }) actor class Dorder() = this {
       };
       case (null) {
         Table.new(tableMap, tableNumber, capacity);
-        logOfTable.add("Table " #Nat.toText(tableNumber) # " was  Added by " #Principal.toText(caller) # "!");
+        Log.add(logMap, #Table, "Table " #Nat.toText(tableNumber) # " was  Added by " #Principal.toText(caller) # "!");
         return #ok(" Table  " #Nat.toText(tableNumber) # "  was Added! ");
       };
     };
@@ -139,9 +141,12 @@ shared ({ caller = manager }) actor class Dorder() = this {
   // Reserve Table
 
   public shared ({ caller }) func reserveTableNew(tableId : Nat) : async Result.Result<Text, Text> {
+    if (User.canPerform(userMap, caller, #ReserveTable) != true) {
+      return #err("The caller " #Principal.toText(caller) # " dose not have permission Reserve Table!");
+    };
     switch (Table.reserve(tableMap, tableId, caller)) {
       case (#ok(updatedTable)) {
-        logOfTable.add("Table " #Nat.toText(tableId) # " was Reserved by " #Principal.toText(caller) # "!");
+        Log.add(logMap, #Table, "Table " #Nat.toText(tableId) # " was Reserved by " #Principal.toText(caller) # "!");
         return #ok("Table reserved successfully.");
       };
       case (#err(errorMessage)) {
@@ -151,13 +156,13 @@ shared ({ caller = manager }) actor class Dorder() = this {
   };
 
   public shared ({ caller }) func unreserveTableNew(tableId : Nat) : async Result.Result<Text, Text> {
-    if (User.canPerform(userMap, caller, #UnreserveTable) != true) {
-      return #err("The caller " #Principal.toText(caller) # " dose not Reserved this table!");
+    if (Table.canUnreserveTable(userMap, tableMap, caller, tableId) != true) {
+      return #err("can't unreserve table becuse caller didn't reserve any table !");
     };
 
     switch (Table.unreserve(tableMap, tableId)) {
       case (#ok(updatedTable)) {
-        logOfTable.add("Table " #Nat.toText(tableId) # " was Unreserved by " #Principal.toText(caller) # "!");
+        Log.add(logMap, #Table, "Table " #Nat.toText(tableId) # " was Unreserved by " #Principal.toText(caller) # "!");
         return #ok("Table " #Nat.toText(tableId) # " was Unreserved!");
       };
       case (#err(errorMessage)) {
@@ -352,6 +357,18 @@ shared ({ caller = manager }) actor class Dorder() = this {
 
   };
 
+  public shared ({ caller }) func getLogs(logs : Log.Catagory) : async Result.Result<[Log.Log], Text> {
+    if (User.canPerform(userMap, caller, #MonitorLogs) != true) {
+      return #err("the caller " #Principal.toText(caller) # " dose not have permission Monitor Logs!");
+    };
+
+    return #ok(await Log.getByCatagory(logMap, logs));
+  };
+
+  ////////////////////////////////////////////
+  /////////////////////////////////////////////
+  //////////////////////////////////////////////
+  ///////////////////////////////////////////////
   // public shared ({ caller }) func editPointItem(menuId : Nat, point : Point.Numb, comment : ?Text, suggest : Bool, image : ?[Blob]) : async Result.Result<Text, Text> {
   //   let item = Menu.get(menuMap, menuId);
   //   switch (item) {

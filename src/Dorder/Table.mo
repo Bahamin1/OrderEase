@@ -46,21 +46,17 @@ module {
 
         put(tables, tableNumber, table);
 
-        Debug.print("Tables::" #Nat.toText(tableNumber) # ":: initialized ");
-        Debug.print(debug_show (tables));
     };
 
     // Function to reserve a table
     public func reserve(tables : TableMap, tableId : Nat, reservedBy : Principal) : Result.Result<TableMap, Text> {
         switch (get(tables, tableId)) {
             case null {
-                Debug.print("Table ID out of range.");
                 return #err("Table ID out of range.");
             };
             case (?table) {
                 switch (table.reservedBy) {
                     case (?reservedBy) {
-                        Debug.print("Table already reserved.");
                         return #err("Table already reserved.");
                     };
                     case (null) {
@@ -72,8 +68,6 @@ module {
                             seatedCustomers = [];
                         };
                         put(tables, tableId, updatedTable);
-                        Debug.print("Table reserved: ");
-                        Debug.print(debug_show (tables));
                         return #ok(tables);
                     };
                 };
@@ -86,16 +80,14 @@ module {
     public func unreserve(tables : TableMap, tableId : Nat) : Result.Result<TableMap, Text> {
         switch (get(tables, tableId)) {
             case null {
-                Debug.print("Table ID out of range.");
                 return #err("Table ID out of range.");
             };
             case (?table) {
                 switch (table.reservedBy) {
-                    case (?reservedBy) {
-                        Debug.print("Table already reserved.");
-                        return #err("Table already reserved.");
-                    };
                     case (null) {
+                        return #err("Table already Free.");
+                    };
+                    case (?reservedBy) {
                         let updatedTable : Table = {
                             id = table.id;
                             capacity = table.capacity;
@@ -105,8 +97,6 @@ module {
                             seatedCustomers = [];
                         };
                         put(tables, tableId, updatedTable);
-                        Debug.print("Table unreserved: ");
-                        Debug.print(debug_show (tables));
                         return #ok(tables);
                     };
                 };
@@ -162,24 +152,32 @@ module {
     };
 
     // Check if the table exists and is reserved by the specified principal.
-    public func canUnreserveTable(tables : TableMap, p : Principal, tableId : Nat) : Bool {
-        if (isReserved(tables, tableId)) {
-            switch (get(tables, tableId)) {
-                case (null) { return false };
-                case (?table) {
-                    switch (table.reservedBy) {
+    public func canUnreserveTable(userMap : User.UserMap, tables : TableMap, p : Principal, tableId : Nat) : Bool {
+        switch (User.canPerform(userMap, p, #UnreserveTable)) {
+            case (true) {
+                return true;
+            };
+            case (false) {
+                if (isReserved(tables, tableId)) {
+                    switch (get(tables, tableId)) {
                         case (null) { return false };
-                        case (?reservedBy) {
-                            if (reservedBy == p) {
-                                return true;
-                            } else {
-                                return false;
+                        case (?table) {
+                            switch (table.reservedBy) {
+                                case (null) { return false };
+                                case (?reservedBy) {
+                                    if (reservedBy == p) {
+                                        return true;
+                                    } else {
+                                        return false;
+                                    };
+                                };
                             };
                         };
                     };
-                };
-            };
 
+                };
+
+            };
         };
         return false;
     };

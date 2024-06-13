@@ -12,6 +12,7 @@ module {
         #ReserveTable;
         #UnreserveTable;
         #PayTable;
+        #MonitorLogs;
         #HireManager;
         #FireManager;
         #HireEmployee;
@@ -19,7 +20,6 @@ module {
         #ModifyTable;
         #ModifyMenuItem;
         #ModifyMenuItemPoint;
-        #ViewReports;
         #ModifyEmployeePoints;
     };
 
