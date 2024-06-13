@@ -18,22 +18,26 @@ import User "User";
 
 shared ({ caller = manager }) actor class Dorder() = this {
 
-  // Users FuncTion
-  stable var userMap : User.UserMap = Map.new<Principal, User.User>();
-  stable var logMap : Log.LogMap = Map.new<Nat, Log.Log>();
-
   // TODO: Replace this with Manager to anonymus role
   let guest : Principal = Principal.fromText("2vxsx-fae");
 
-  User.new(userMap, guest, "ADMIN", #Admin, []);
+  //----------------- Log Functions -----------------//
 
-  // Buffer loG OF Members
-  var logOfMembers = Buffer.Buffer<Text>(0);
-  public query func getMemberLogNew() : async [Text] {
-    return Buffer.toArray(logOfMembers);
+  stable var logMap : Log.LogMap = Map.new<Nat, Log.Log>();
+
+  public shared ({ caller }) func getLogs(logs : Log.Catagory) : async Result.Result<[Log.Log], Text> {
+    if (User.canPerform(userMap, caller, #MonitorLogs) != true) {
+      return #err("the caller " #Principal.toText(caller) # " dose not have permission Monitor Logs!");
+    };
+
+    return #ok(await Log.getByCatagory(logMap, logs));
   };
 
-  // Register User
+  //----------------- Member Functions -----------------//
+
+  stable var userMap : User.UserMap = Map.new<Principal, User.User>();
+  User.new(userMap, guest, "ADMIN", #Admin, []);
+
   public shared ({ caller }) func registerMemberNew(name : Text, image : ?Blob) : async Result.Result<(), Text> {
     switch (User.get(userMap, caller)) {
       case (?user) {
@@ -48,13 +52,12 @@ shared ({ caller = manager }) actor class Dorder() = this {
         ];
 
         User.new(userMap, caller, name, #Customer, allowedOperations);
-        Log.add(logMap, #Member, "Member with Principal " # Principal.toText(caller) # " Registered!");
+        Log.add(logMap, #Member, "Member " # Principal.toText(caller) # " has been Registered!");
         return #ok();
       };
     };
   };
 
-  // Add manager just admin can do ....
   public shared ({ caller }) func addManager(principal : Principal, name : Text, allowedOperations : [Type.Operation]) : async Result.Result<(), Text> {
     if (User.canPerform(userMap, caller, #HireManager) != true) {
       return #err("The caller " # Principal.toText(caller) # " havent Opration for this func");
@@ -74,7 +77,6 @@ shared ({ caller = manager }) actor class Dorder() = this {
     };
   };
 
-  // Add employee function for anyone have opration #HireEmployee
   public shared ({ caller }) func addEmployee(principal : Principal, name : Text, allowedOperations : [Type.Operation]) : async Result.Result<(), Text> {
     if (User.canPerform(userMap, caller, #HireEmployee) != true) {
       return #err("The caller " # Principal.toText(caller) # " havent Opration for this func");
@@ -94,13 +96,11 @@ shared ({ caller = manager }) actor class Dorder() = this {
     };
   };
 
-  //Get member
   public query func getMember(p : Principal) : async ?User.User {
     let member = User.get(userMap, p);
     return member;
   };
 
-  // Get all Members
   public query func getAllMembersNew() : async [User.User] {
     return Iter.toArray(Map.vals<Principal, User.User>(userMap));
   };
@@ -108,14 +108,7 @@ shared ({ caller = manager }) actor class Dorder() = this {
   //----------------- Table Functions -----------------//
 
   stable var tableMap : Table.TableMap = Map.new<Nat, Table.Table>();
-  var logOfTable : Buffer.Buffer<Text> = Buffer.Buffer<Text>(0);
 
-  // Get log Of Tables
-  public shared query ({ caller }) func getTableLogs() : async [Text] {
-    return Buffer.toArray(logOfTable);
-  };
-
-  // Add Tables
   public shared ({ caller }) func addTableNew(tableNumber : Nat, capacity : Nat) : async Result.Result<(Text), Text> {
     if (User.canPerform(userMap, caller, #ModifyTable) != true) {
       return #err("The caller " #Principal.toText(caller) # " dose not have permission to add table!");
@@ -133,12 +126,9 @@ shared ({ caller = manager }) actor class Dorder() = this {
     };
   };
 
-  // get all Table
   public shared query func getTables() : async [Table.Table] {
     return Iter.toArray(Map.vals<Nat, Table.Table>(tableMap));
   };
-
-  // Reserve Table
 
   public shared ({ caller }) func reserveTableNew(tableId : Nat) : async Result.Result<Text, Text> {
     if (User.canPerform(userMap, caller, #ReserveTable) != true) {
@@ -173,19 +163,15 @@ shared ({ caller = manager }) actor class Dorder() = this {
 
   //----------------- Menu Functions -----------------//
 
-  var logOfMenu = Buffer.Buffer<Text>(0);
   stable var menuMap : Menu.MenuMap = Map.new<Nat, Menu.MenuItem>();
 
-  public shared ({ caller }) func getMenuLog() : async [Text] {
-    return Buffer.toArray(logOfMenu);
-  };
-
-  public shared ({ caller }) func addMenuItem(newMenuItem : Menu.NewMenuItem) : async Result.Result<Nat, Text> {
+  public shared ({ caller }) func addMenuItem(newMenuItem : Menu.NewMenuItem) : async Result.Result<Text, Text> {
     if (User.canPerform(userMap, caller, #ModifyMenuItem) != true) {
       return #err("The caller " #Principal.toText(caller) # " dose not have permission to add menu item!");
     };
     Menu.new(menuMap, newMenuItem);
-    return #ok(Map.size(menuMap));
+    Log.add(logMap, #Menu, "New Menu Added By " #Principal.toText(caller) # "!");
+    return #ok("Menu Added Successfully");
   };
 
   public shared ({ caller }) func updateMenuItem(menuId : Nat, newMenuItem : Menu.NewMenuItem) : async Result.Result<Text, Text> {
@@ -195,7 +181,7 @@ shared ({ caller = manager }) actor class Dorder() = this {
 
     switch (Menu.update(menuMap, menuId, newMenuItem)) {
       case (#ok(msg)) {
-        logOfMenu.add("Item with id " #Nat.toText(menuId) # " has been updated by " #Principal.toText(caller) # ".");
+        Log.add(logMap, #Menu, "Item with id " #Nat.toText(menuId) # " has been Updated by " #Principal.toText(caller) # ".");
         return #ok(msg);
       };
       case (#err(errorMessage)) {
@@ -215,7 +201,7 @@ shared ({ caller = manager }) actor class Dorder() = this {
     };
 
     Map.delete<Nat, Menu.MenuItem>(menuMap, nhash, menuId);
-    logOfMenu.add("Item with id " #Nat.toText(menuId) # " has been removed from the menu by " #Principal.toText(caller) # ".");
+    Log.add(logMap, #Menu, "Item with id " #Nat.toText(menuId) # " has been removed from the menu by " #Principal.toText(caller) # ".");
     return #ok("The menu item with id " #Nat.toText(menuId) # " has been removed!");
   };
 
@@ -267,7 +253,7 @@ shared ({ caller = manager }) actor class Dorder() = this {
         };
 
         Menu.put(menuMap, menuId, newMenuItem);
-        logOfMenu.add("The User " #Principal.toText(caller) # " added a point to the menu item with id " #Nat.toText(menuId));
+        Log.add(logMap, #MenuPoint, "The User " #Principal.toText(caller) # " added a point to the menu item with id " #Nat.toText(menuId));
         return #ok("Point added to menu item " #Nat.toText(menuId) # "!");
       };
     };
@@ -292,6 +278,8 @@ shared ({ caller = manager }) actor class Dorder() = this {
         return #err(" " #Principal.toText(caller) # " have not any Point in this Menu ID !");
       };
       case (true) {
+        Log.add(logMap, #MenuPoint, "" #Principal.toText(caller) # " update their own Menu Point " #Nat.toText(menuId) # "!");
+
         return #ok("Update Success!");
       };
     };
@@ -328,7 +316,7 @@ shared ({ caller = manager }) actor class Dorder() = this {
           orders = user.orders;
         };
         User.put(userMap, employeeId, updateEmployee);
-        logOfMembers.add("Point added to employee " #Principal.toText(employeeId) # " successfully by " #Principal.toText(caller) # ". ");
+        Log.add(logMap, #EmployeePoint, "" #Principal.toText(caller) # " Gave Point to employee " #Principal.toText(employeeId) # "!");
         return #ok("Point added to employee " #Principal.toText(employeeId) # " successfully!");
       };
     };
@@ -348,21 +336,14 @@ shared ({ caller = manager }) actor class Dorder() = this {
     let filteredPoint = User.replaceUserPointByPrincipal(userMap, employeeId, newPoint);
     switch (filteredPoint) {
       case (false) {
-        return #err("" #Principal.toText(caller) # " have not any Point in this employee ID !");
+        return #err("" # Principal.toText(caller) # " have not any Point in this employee ID !");
       };
       case (true) {
+        Log.add(logMap, #EmployeePoint, "" #Principal.toText(caller) # " Update their own point of employee  " #Principal.toText(employeeId) # "!");
         return #ok("Update Success!");
       };
     };
 
-  };
-
-  public shared ({ caller }) func getLogs(logs : Log.Catagory) : async Result.Result<[Log.Log], Text> {
-    if (User.canPerform(userMap, caller, #MonitorLogs) != true) {
-      return #err("the caller " #Principal.toText(caller) # " dose not have permission Monitor Logs!");
-    };
-
-    return #ok(await Log.getByCatagory(logMap, logs));
   };
 
   ////////////////////////////////////////////

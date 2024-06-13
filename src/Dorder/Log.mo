@@ -17,6 +17,8 @@ module {
         #Table;
         #Menu;
         #Order;
+        #EmployeePoint;
+        #MenuPoint;
     };
 
     public type LogMap = Map.Map<Nat, Log>;
