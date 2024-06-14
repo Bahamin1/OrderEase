@@ -23,26 +23,4 @@ module {
         #ModifyEmployeePoints;
     };
 
-    public type OrderType = {
-        #OnTable;
-        #TakeOut;
-    };
-
-    public type Order = {
-        orderType : OrderType;
-        items : [Menu.MenuItem];
-    };
-
-    //cart map
-
-    public type Cart = {
-        products : HashMap.HashMap<Nat, CartProduct>;
-        createdAt : Int;
-    };
-    public type CartProduct = {
-        quantity : Nat;
-        productId : Nat;
-        createdAt : Int;
-    };
-
 };

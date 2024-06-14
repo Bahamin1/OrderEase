@@ -4,6 +4,7 @@ import Result "mo:base/Result";
 import Map "mo:map/Map";
 import { phash } "mo:map/Map";
 
+import Cart "Cart";
 import P "Point";
 import Point "Point";
 import T "Types";
@@ -27,7 +28,7 @@ module {
         image : ?Blob;
         buyingScore : Nat8;
         point : [P.EmployeePoint];
-        orders : [T.Order];
+        orders : [Cart.Order];
     };
 
     public type UserMap = Map.Map<Principal, User>;

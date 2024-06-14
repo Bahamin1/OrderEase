@@ -23,10 +23,6 @@ module {
 
     public type LogMap = Map.Map<Nat, Log>;
 
-    public func get(logMap : LogMap, key : Nat) : ?Log {
-        return Map.get(logMap, nhash, key);
-    };
-
     public func put(logMap : LogMap, key : Nat, value : Log) : () {
         return Map.set(logMap, nhash, key, value);
     };
@@ -46,16 +42,20 @@ module {
         return;
     };
 
-    public func getByCatagory(logMap : LogMap, catagory : Catagory) : async [Log] {
+    public func getLogsByCategory(logMap : LogMap, per : Catagory) : [Log] {
         var filteredLogs : [Log] = [];
-        for ((_, log) in Map.entries(logMap)) {
-            switch (log.catagory == catagory) {
-                case (catagory) {
-                    filteredLogs := Array.append<Log>(filteredLogs, [log]);
+
+        for (cata in Map.vals(logMap)) {
+            switch (cata.catagory) {
+                case (is) {
+
+                    if (is == per) {
+                        filteredLogs := Array.append<Log>(filteredLogs, [cata]);
+                    };
                 };
             };
         };
         return filteredLogs;
-    };
 
+    };
 };
