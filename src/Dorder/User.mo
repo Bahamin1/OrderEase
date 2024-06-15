@@ -28,7 +28,6 @@ module {
         image : ?Blob;
         buyingScore : Nat8;
         point : [P.EmployeePoint];
-        orders : [Cart.Order];
     };
 
     public type UserMap = Map.Map<Principal, User>;
@@ -127,7 +126,6 @@ module {
                     image = user.image;
                     buyingScore = user.buyingScore;
                     point = newPoints;
-                    orders = user.orders;
                 };
                 put(userMap, employeeId, updateduser);
                 return true;

@@ -2,13 +2,11 @@ import HashMap "mo:base/HashMap";
 import Principal "mo:base/Principal";
 import Time "mo:base/Time";
 import Map "mo:map/Map";
-import { phash } "mo:map/Map";
-
-import Types "Types";
+import { nhash; phash } "mo:map/Map";
 
 module Cart {
 
-    public type CartMap = Map.Map<Principal, Order>;
+    public type TableCartMap = Map.Map<Nat, CartItem>;
 
     public type OrderType = {
         #OnTable;
@@ -27,24 +25,12 @@ module Cart {
         createdAt : Time.Time;
     };
 
-    //     public func get(cartMap : CartMap, principal : Principal) : ?Order {
-    //         return Map.get(cartMap, phash, principal);
-    //     };
+    public func get(cartMap : TableCartMap, tableId : Nat) : ?CartItem {
+        return Map.get(cartMap, nhash, tableId);
+    };
 
-    //     //// put User
-    //     public func put(cartMap : CartMap, p : Principal, order : Order) : () {
-    //         return Map.set(cartMap, phash, p, order);
-    //     };
-
-    //     /// add new order
-    //     public func new(cartMap : CartMap, caller : Principal, orderType : OrderType) {
-    //         let cartItem = [];
-    //         let order = {
-    //             items = cartItem;
-    //             orderType = orderType;
-    //             createdAt = Time.now();
-    //         };
-    //         put(cartMap, caller, order);
-    //     };
+    public func put(cartMap : TableCartMap, tableId : Nat, order : CartItem) : () {
+        return Map.set(cartMap, nhash, tableId, order);
+    };
 
 };

@@ -1,4 +1,3 @@
-import Array "mo:base/Array";
 import Buffer "mo:base/Buffer";
 import Iter "mo:base/Iter";
 import Nat "mo:base/Nat";
@@ -7,7 +6,7 @@ import Result "mo:base/Result";
 import Text "mo:base/Text";
 import Time "mo:base/Time";
 import Map "mo:map/Map";
-import { nhash; phash } "mo:map/Map";
+import { nhash } "mo:map/Map";
 
 import Cart "Cart";
 import Log "Log";
@@ -96,12 +95,12 @@ shared ({ caller = manager }) actor class Dorder() = this {
     };
   };
 
-  public query func getMember(p : Principal) : async ?User.User {
+  public shared func getMember(p : Principal) : async ?User.User {
     let member = User.get(userMap, p);
     return member;
   };
 
-  public query func getAllMembersNew() : async [User.User] {
+  public shared func getAllMembersNew() : async [User.User] {
     return Iter.toArray(Map.vals<Principal, User.User>(userMap));
   };
 
@@ -313,7 +312,6 @@ shared ({ caller = manager }) actor class Dorder() = this {
           image = user.image;
           buyingScore = user.buyingScore;
           point = Buffer.toArray(employeePoint);
-          orders = user.orders;
         };
         User.put(userMap, employeeId, updateEmployee);
         Log.add(logMap, #EmployeePoint, "" #Principal.toText(caller) # " Gave Point to employee " #Principal.toText(employeeId) # "!");
@@ -347,6 +345,49 @@ shared ({ caller = manager }) actor class Dorder() = this {
   };
 
   //-------------------------- Cart Functions------------------------------\\
+
+  stable var tableCarts : Cart.TableCartMap = Map.new<Nat, Cart.CartItem>();
+
+  public shared ({ caller }) func createTableCart(tableId : Nat, orderType : Cart.OrderType) : async Result.Result<Text, Text> {
+    if (User.canPerform(userMap, caller, #ModifyTable)) {
+      return #err("Table cart already exists for table " # Nat.toText(tableId));
+    } else {
+      let newCart : Cart.CartItem = {
+        products = Buffer.Buffer<Menu.MenuItem>;
+        orderType = orderType;
+        createdAt = Time.now();
+      };
+      Cart.put(tableCarts, tableId, newCart);
+      return #ok("Table cart created for table " # Nat.toText(tableId));
+    };
+  };
+
+  public shared ({ caller }) func addToTableCart(tableId : Nat, menuItemId : Nat, quantity : Nat) : async Result.Result<Text, Text> {
+    switch (Cart.get(tableCarts, tableId)) {
+      case (null) {
+        return #err("No cart found for table " # Nat.toText(tableId));
+      };
+      case (?cart) {
+        let updatedProducts = cart.products;
+        let currentQuantity = switch (HashMap.get(cart.products, menuItemId)) {
+          case (?q) { q };
+          case (null) { 0 };
+        };
+        updatedProducts.put(menuItemId, currentQuantity + quantity);
+        let updatedCart = {
+          products = updatedProducts;
+          orderType = cart.orderType;
+          createdAt = cart.createdAt;
+        };
+        HashMap.put(tableCarts, tableId, updatedCart);
+        return #ok("Added to table cart for table " # Nat.toText(tableId));
+      };
+    };
+  };
+
+  public shared query func getTableCart(tableId : Nat) : async ?Cart.CartItem {
+    return Cart.get(tableCarts, tableId);
+  };
 
   // stable var cartMap = Map.new<Principal, Cart.Order>();
 

@@ -1,5 +1,3 @@
-import Buffer "mo:base/Buffer";
-import Result "mo:base/Result";
 import Time "mo:base/Time";
 
 module {
@@ -28,5 +26,37 @@ module {
         point : Numb;
         cratedAt : Time.Time;
     };
+
+    // let nextPointId : Nat = 0;
+    // public func addMenuPoint(menuMap : Menu.MenuMap, menuId : Nat, p : Principal, cm : ?Text, point : Numb, suggest : Bool, image : [Blob]) : Result.Result<(Text), Text> {
+
+    //     switch (M.get(menuMap, id)) {
+    //         case (null) {
+    //             return #err("The menu item with id " #Nat.toText(menuId) # " does not exist!");
+    //         };
+    //         case (?menu) {
+    //             let newMenuPoint = Buffer.fromArray<MenuPoint>(menu.point);
+    //             newMenuPoint.add({
+    //                 comment = cm;
+    //                 pointBy = p;
+    //                 point = point;
+    //                 suggest = suggest;
+    //                 cratedAt = Time.now();
+    //                 image = [image];
+    //             });
+
+    //             nextPointId += 1;
+
+    //             let newMenuPoint : M.MenuItem = {
+    //                 name = menu.name;
+    //                 price = menu.price;
+    //                 description = menu.description;
+    //                 point = Buffer.toArray(newMenuPoint);
+    //                 image = ?Blob;
+    //             };
+    //         };
+    //     };
+
+    // };
 
 };
