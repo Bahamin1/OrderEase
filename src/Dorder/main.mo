@@ -9,13 +9,13 @@ import Time "mo:base/Time";
 import Map "mo:map/Map";
 import { nhash; phash } "mo:map/Map";
 
+import Cart "Cart";
 import Log "Log";
 import Menu "Menu";
 import Point "Point";
 import Table "Table";
 import Type "Types";
 import User "User";
-import Cart "Cart";
 
 shared ({ caller = manager }) actor class Dorder() = this {
 
@@ -348,26 +348,24 @@ shared ({ caller = manager }) actor class Dorder() = this {
 
   //-------------------------- Cart Functions------------------------------\\
 
-  stable var cartMap = Map.new<Principal, Cart.Order>();
+  // stable var cartMap = Map.new<Principal, Cart.Order>();
 
-  public func addToCart(cartMap : Cart.CartMap, caller : Principal, orderType: Types.OrderType) : Result.Result<(Text), Text> {
-    switch (get(cartMap, caller)) {
-      case (?cart) {
-        return #err("This caller with principal " #Principal.toText(caller) # " already has a cart!");
-      };
-      case (null) {
-        let newCart : Cart.Cart = {
-          products = HashMap.empty;
-          orderType = orderType;
-          createdAt = Time.now();
-        };
-        put(cartMap, caller, newCart);
-        return #ok("The cart for " #Principal.toText(caller) # " has been created!");
-      };
-    };
-  };
-
-  public shared ({caller}) func addOrder()
+  // public func addToCart(cartMap : Cart.CartMap, caller : Principal, orderType : Types.OrderType) : Result.Result<(Text), Text> {
+  //   switch (get(cartMap, caller)) {
+  //     case (?cart) {
+  //       return #err("This caller with principal " #Principal.toText(caller) # " already has a cart!");
+  //     };
+  //     case (null) {
+  //       let newCart : Cart.Cart = {
+  //         products = HashMap.empty;
+  //         orderType = orderType;
+  //         createdAt = Time.now();
+  //       };
+  //       put(cartMap, caller, newCart);
+  //       return #ok("The cart for " #Principal.toText(caller) # " has been created!");
+  //     };
+  //   };
+  // };
 
 };
 

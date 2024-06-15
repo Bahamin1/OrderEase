@@ -27,24 +27,24 @@ module Cart {
         createdAt : Time.Time;
     };
 
-    public func get(cartMap : CartMap, principal : Principal) : ?Order {
-        return Map.get(cartMap, phash, principal);
-    };
+    //     public func get(cartMap : CartMap, principal : Principal) : ?Order {
+    //         return Map.get(cartMap, phash, principal);
+    //     };
 
-    //// put User
-    public func put(cartMap : CartMap, p : Principal, order : Order) : () {
-        return Map.set(cartMap, phash, p, order);
-    };
+    //     //// put User
+    //     public func put(cartMap : CartMap, p : Principal, order : Order) : () {
+    //         return Map.set(cartMap, phash, p, order);
+    //     };
 
-    /// add new order
-    public func new(cartMap : CartMap, caller : Principal, orderType : OrderType) {
-        let cartItem = [];
-        let order = {
-            items = cartItem;
-            orderType = orderType;
-            createdAt = Time.now();
-        };
-        put(cartMap, caller, order);
-    };
+    //     /// add new order
+    //     public func new(cartMap : CartMap, caller : Principal, orderType : OrderType) {
+    //         let cartItem = [];
+    //         let order = {
+    //             items = cartItem;
+    //             orderType = orderType;
+    //             createdAt = Time.now();
+    //         };
+    //         put(cartMap, caller, order);
+    //     };
 
 };
