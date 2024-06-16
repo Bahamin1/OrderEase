@@ -8,19 +8,5 @@ import Time "mo:base/Time";
 import Menu "Menu";
 
 module {
-    public type Operation = {
-        #ReserveTable;
-        #UnreserveTable;
-        #PayTable;
-        #MonitorLogs;
-        #HireManager;
-        #FireManager;
-        #HireEmployee;
-        #FireEmployee;
-        #ModifyTable;
-        #ModifyMenuItem;
-        #ModifyMenuItemPoint;
-        #ModifyEmployeePoints;
-    };
 
 };

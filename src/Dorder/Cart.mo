@@ -4,6 +4,9 @@ import Time "mo:base/Time";
 import Map "mo:map/Map";
 import { nhash; phash } "mo:map/Map";
 
+import Menu "Menu";
+import Point "Point";
+
 module Cart {
 
     public type TableCartMap = Map.Map<Nat, CartItem>;
@@ -19,18 +22,21 @@ module Cart {
         createdAt : Time.Time;
     };
 
+    public type OrderStatus = {
+        #Pending;
+        #Preparing;
+        #Delivered;
+        #Canceled;
+    };
+
     public type Order = {
-        items : HashMap.HashMap<Nat, CartItem>;
+        orderId : Nat;
         orderType : OrderType;
-        createdAt : Time.Time;
-    };
-
-    public func get(cartMap : TableCartMap, tableId : Nat) : ?CartItem {
-        return Map.get(cartMap, nhash, tableId);
-    };
-
-    public func put(cartMap : TableCartMap, tableId : Nat, order : CartItem) : () {
-        return Map.set(cartMap, nhash, tableId, order);
+        items : [Menu.MenuItem];
+        totalPrice : Float;
+        status : OrderStatus;
+        tableNumber : Nat;
+        orderTime : Time.Time;
     };
 
 };

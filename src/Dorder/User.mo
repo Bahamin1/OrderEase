@@ -5,12 +5,11 @@ import Map "mo:map/Map";
 import { phash } "mo:map/Map";
 
 import Cart "Cart";
-import P "Point";
 import Point "Point";
-import T "Types";
 
 // Define the enum for different operations
 module {
+
     public type UserRole = {
         #Guest;
         #Customer;
@@ -19,15 +18,31 @@ module {
         #Admin;
     };
 
+    public type Operation = {
+        #ReserveTable;
+        #UnreserveTable;
+        #PayTable;
+        #MonitorLogs;
+        #HireManager;
+        #FireManager;
+        #HireEmployee;
+        #FireEmployee;
+        #ModifyTable;
+        #ModifyMenuItem;
+        #ModifyMenuItemPoint;
+        #ModifyEmployeePoints;
+    };
+
     public type User = {
         name : Text;
         principal : Principal;
         role : UserRole;
-        allowedOperations : [T.Operation];
+        allowedOperations : [Operation];
         id : Nat;
         image : ?Blob;
         buyingScore : Nat8;
-        point : [P.EmployeePoint];
+        point : [Point.EmployeePoint];
+        order : ?Cart.Order;
     };
 
     public type UserMap = Map.Map<Principal, User>;
@@ -43,7 +58,7 @@ module {
     };
 
     ///// add New user specefic with oprations
-    public func new(userMap : UserMap, principal : Principal, name : Text, role : UserRole, allowedOperations : [T.Operation]) : () {
+    public func new(userMap : UserMap, principal : Principal, name : Text, role : UserRole, allowedOperations : [Operation]) : () {
         let id = Map.size(userMap) +1;
 
         let user : User = {
@@ -55,7 +70,7 @@ module {
             image = null;
             buyingScore = 0;
             point = [];
-            orders = [];
+            order = null;
         };
 
         put(userMap, principal, user);
@@ -63,7 +78,7 @@ module {
         return;
     };
 
-    public func canPerform(userMap : UserMap, p : Principal, operation : T.Operation) : Bool {
+    public func canPerform(userMap : UserMap, p : Principal, operation : Operation) : Bool {
         let user = get(userMap, p);
 
         switch (user) {
@@ -126,6 +141,8 @@ module {
                     image = user.image;
                     buyingScore = user.buyingScore;
                     point = newPoints;
+                    order = null;
+
                 };
                 put(userMap, employeeId, updateduser);
                 return true;

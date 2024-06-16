@@ -1,3 +1,4 @@
+import Array "mo:base/Array";
 import Buffer "mo:base/Buffer";
 import Iter "mo:base/Iter";
 import Nat "mo:base/Nat";
@@ -57,7 +58,7 @@ shared ({ caller = manager }) actor class Dorder() = this {
     };
   };
 
-  public shared ({ caller }) func addManager(principal : Principal, name : Text, allowedOperations : [Type.Operation]) : async Result.Result<(), Text> {
+  public shared ({ caller }) func addManager(principal : Principal, name : Text, allowedOperations : [User.Operation]) : async Result.Result<(), Text> {
     if (User.canPerform(userMap, caller, #HireManager) != true) {
       return #err("The caller " # Principal.toText(caller) # " havent Opration for this func");
     };
@@ -76,7 +77,7 @@ shared ({ caller = manager }) actor class Dorder() = this {
     };
   };
 
-  public shared ({ caller }) func addEmployee(principal : Principal, name : Text, allowedOperations : [Type.Operation]) : async Result.Result<(), Text> {
+  public shared ({ caller }) func addEmployee(principal : Principal, name : Text, allowedOperations : [User.Operation]) : async Result.Result<(), Text> {
     if (User.canPerform(userMap, caller, #HireEmployee) != true) {
       return #err("The caller " # Principal.toText(caller) # " havent Opration for this func");
     };
@@ -129,6 +130,10 @@ shared ({ caller = manager }) actor class Dorder() = this {
     return Iter.toArray(Map.vals<Nat, Table.Table>(tableMap));
   };
 
+  ////_________________________NOTE______________________\\\\
+  // When this function is called and results in an error, the user must be notified.
+  // The table you're trying to access is reserved.
+  // Do you want to request to join this table? This will call the SeatOnTable function.
   public shared ({ caller }) func reserveTableNew(tableId : Nat) : async Result.Result<Text, Text> {
     if (User.canPerform(userMap, caller, #ReserveTable) != true) {
       return #err("The caller " #Principal.toText(caller) # " dose not have permission Reserve Table!");
@@ -142,6 +147,16 @@ shared ({ caller = manager }) actor class Dorder() = this {
         return #err(errorMessage);
       };
     };
+  };
+
+  private shared ({ caller }) func seatOnTable(tableId : Nat) : async Result.Result<Text, Text> {
+    if (Table.isReserved(tableMap, tableId) != true) {
+      return #err("This table already open for Reserve");
+    };
+
+    Table.requestToJoinTable(tableMap, tableId, caller);
+    return #ok("requst sent ! wait for Reserver response");
+
   };
 
   public shared ({ caller }) func unreserveTableNew(tableId : Nat) : async Result.Result<Text, Text> {
@@ -158,6 +173,38 @@ shared ({ caller = manager }) actor class Dorder() = this {
         return #err(errorMessage);
       };
     };
+  };
+
+  public shared query ({ caller }) func getRequstesJoinToTable(tableId : Nat) : async Result.Result<[Principal], Text> {
+    if (Table.canUnreserveTable(userMap, tableMap, caller, tableId) != true) {
+      return #err("this member " #Principal.toText(caller) # " didnt Reserve table " #Nat.toText(tableId) # "!");
+    };
+    var users : [Principal] = [];
+    switch (Table.get(tableMap, tableId)) {
+      case (?table) {
+        switch (table.userWantsToJoin) {
+          case (is) {
+            users := is;
+            return #ok(users);
+          };
+        };
+      };
+      case (null) {
+        return #err("there is no request item");
+      };
+    };
+  };
+
+  public shared ({ caller }) func addguestTotable(tableId : Nat, p : Principal, yesOrNo : Bool) : async Result.Result<[Principal], Text> {
+    if (Table.canUnreserveTable(userMap, tableMap, caller, tableId) != true) {
+      return #err("this member " #Principal.toText(caller) # " didnt Reserve the table " #Nat.toText(tableId) # "!");
+    };
+    switch (Table.addGustToTable(tableMap, tableId, p)) {
+      case (seatedUsers) {
+        return #ok(seatedUsers);
+      };
+    };
+
   };
 
   //----------------- Menu Functions -----------------//
@@ -312,6 +359,7 @@ shared ({ caller = manager }) actor class Dorder() = this {
           image = user.image;
           buyingScore = user.buyingScore;
           point = Buffer.toArray(employeePoint);
+          order = user.order;
         };
         User.put(userMap, employeeId, updateEmployee);
         Log.add(logMap, #EmployeePoint, "" #Principal.toText(caller) # " Gave Point to employee " #Principal.toText(employeeId) # "!");
@@ -345,68 +393,7 @@ shared ({ caller = manager }) actor class Dorder() = this {
   };
 
   //-------------------------- Cart Functions------------------------------\\
-
-  stable var tableCarts : Cart.TableCartMap = Map.new<Nat, Cart.CartItem>();
-
-  public shared ({ caller }) func createTableCart(tableId : Nat, orderType : Cart.OrderType) : async Result.Result<Text, Text> {
-    if (User.canPerform(userMap, caller, #ModifyTable)) {
-      return #err("Table cart already exists for table " # Nat.toText(tableId));
-    } else {
-      let newCart : Cart.CartItem = {
-        products = Buffer.Buffer<Menu.MenuItem>;
-        orderType = orderType;
-        createdAt = Time.now();
-      };
-      Cart.put(tableCarts, tableId, newCart);
-      return #ok("Table cart created for table " # Nat.toText(tableId));
-    };
-  };
-
-  public shared ({ caller }) func addToTableCart(tableId : Nat, menuItemId : Nat, quantity : Nat) : async Result.Result<Text, Text> {
-    switch (Cart.get(tableCarts, tableId)) {
-      case (null) {
-        return #err("No cart found for table " # Nat.toText(tableId));
-      };
-      case (?cart) {
-        let updatedProducts = cart.products;
-        let currentQuantity = switch (HashMap.get(cart.products, menuItemId)) {
-          case (?q) { q };
-          case (null) { 0 };
-        };
-        updatedProducts.put(menuItemId, currentQuantity + quantity);
-        let updatedCart = {
-          products = updatedProducts;
-          orderType = cart.orderType;
-          createdAt = cart.createdAt;
-        };
-        HashMap.put(tableCarts, tableId, updatedCart);
-        return #ok("Added to table cart for table " # Nat.toText(tableId));
-      };
-    };
-  };
-
-  public shared query func getTableCart(tableId : Nat) : async ?Cart.CartItem {
-    return Cart.get(tableCarts, tableId);
-  };
-
-  // stable var cartMap = Map.new<Principal, Cart.Order>();
-
-  // public func addToCart(cartMap : Cart.CartMap, caller : Principal, orderType : Types.OrderType) : Result.Result<(Text), Text> {
-  //   switch (get(cartMap, caller)) {
-  //     case (?cart) {
-  //       return #err("This caller with principal " #Principal.toText(caller) # " already has a cart!");
-  //     };
-  //     case (null) {
-  //       let newCart : Cart.Cart = {
-  //         products = HashMap.empty;
-  //         orderType = orderType;
-  //         createdAt = Time.now();
-  //       };
-  //       put(cartMap, caller, newCart);
-  //       return #ok("The cart for " #Principal.toText(caller) # " has been created!");
-  //     };
-  //   };
-  // };
+  private var orderBuffer = Buffer.Buffer<Cart.Order>(0);
 
 };
 

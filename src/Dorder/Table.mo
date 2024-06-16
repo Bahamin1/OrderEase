@@ -8,16 +8,20 @@ import Time "mo:base/Time";
 import Map "mo:map/Map";
 import { nhash } "mo:map/Map";
 
+import Cart "Cart";
 import User "User";
 
 module {
+
     // Table type definition
     public type Table = {
         id : Nat;
         capacity : Nat;
         reservedBy : ?Principal;
         reserveTime : ?Time.Time;
+        userWantsToJoin : [Principal];
         seatedCustomers : [Principal];
+        order : ?Cart.Order;
     };
 
     public type TableMap = Map.Map<Nat, Table>;
@@ -39,10 +43,12 @@ module {
         let table = {
             id = tableNumber;
             capacity = capacity;
-            isReserved = false;
             reservedBy = null;
             reserveTime = null;
+            userWantsToJoin = [];
             seatedCustomers = [];
+            order = null;
+
         };
 
         put(tables, tableNumber, table);
@@ -66,7 +72,9 @@ module {
                             capacity = table.capacity;
                             reservedBy = ?reservedBy;
                             reserveTime = ?Time.now();
+                            userWantsToJoin = [];
                             seatedCustomers = [];
+                            order = null;
                         };
                         put(tables, tableId, updatedTable);
                         return #ok(tables);
@@ -92,10 +100,12 @@ module {
                         let updatedTable : Table = {
                             id = table.id;
                             capacity = table.capacity;
-                            isReserved = false;
                             reservedBy = null;
                             reserveTime = null;
+                            userWantsToJoin = [];
                             seatedCustomers = [];
+                            order = null;
+
                         };
                         put(tables, tableId, updatedTable);
                         return #ok(tables);
@@ -181,6 +191,85 @@ module {
             };
         };
         return false;
+    };
+
+    public func requestToJoinTable(tableMap : TableMap, tableId : Nat, p : Principal) : () {
+        switch (get(tableMap, tableId)) {
+            case (?table) {
+
+                let addrequest = Array.append<Principal>(table.userWantsToJoin, [p]);
+
+                let updatedTable : Table = {
+                    id = tableId;
+                    capacity = table.capacity;
+                    reservedBy = table.reservedBy;
+                    reserveTime = table.reserveTime;
+                    userWantsToJoin = addrequest;
+                    seatedCustomers = table.seatedCustomers;
+                    order = table.order;
+                };
+                return;
+
+            };
+            case (null) { return };
+
+        };
+
+    };
+
+    public func addGustToTable(tableMap : TableMap, tableId : Nat, p : Principal) : [Principal] {
+        switch (get(tableMap, tableId)) {
+            case null { return [] };
+            case (?table) {
+                switch (table.userWantsToJoin) {
+                    case (users) {
+                        let removedPrincipal = removeElementFromArray(users, p);
+
+                        let updatedUserWantsToJoin : Table = {
+                            id = tableId;
+                            capacity = table.capacity;
+                            reservedBy = table.reservedBy;
+                            reserveTime = table.reserveTime;
+                            userWantsToJoin = removedPrincipal;
+                            seatedCustomers = table.seatedCustomers;
+                            order = table.order;
+                        };
+                        put(tableMap, tableId, updatedUserWantsToJoin);
+                        Debug.print("user successfully removed from wants to join");
+                    };
+                };
+
+                switch (table.seatedCustomers) {
+                    case (seat) {
+                        let newSeated = Array.append<Principal>(seat, [p]);
+
+                        let updatedSeatedCustomers : Table = {
+                            id = tableId;
+                            capacity = table.capacity;
+                            reservedBy = table.reservedBy;
+                            reserveTime = table.reserveTime;
+                            userWantsToJoin = table.userWantsToJoin;
+                            seatedCustomers = newSeated;
+                            order = table.order;
+                        };
+                        put(tableMap, tableId, updatedSeatedCustomers);
+                        Debug.print("user successfully add to seated customer");
+
+                        return newSeated;
+                    };
+
+                };
+            };
+        };
+    };
+
+    func removeElementFromArray(arr : [Principal], valueToRemove : Principal) : [Principal] {
+        return Array.filter<Principal>(
+            arr,
+            func(x : Principal) : Bool {
+                x != valueToRemove;
+            },
+        );
     };
 
 };
