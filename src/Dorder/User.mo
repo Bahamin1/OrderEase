@@ -1,11 +1,12 @@
 import Array "mo:base/Array";
+import HashMap "mo:base/HashMap";
 import Principal "mo:base/Principal";
 import Result "mo:base/Result";
 import Map "mo:map/Map";
 import { phash } "mo:map/Map";
 
 import Cart "Cart";
-import Point "Point";
+import Review "Review";
 
 // Define the enum for different operations
 module {
@@ -15,7 +16,7 @@ module {
         #Customer;
         #Employee;
         #Manager;
-        #Admin;
+        #Admin
     };
 
     public type Operation = {
@@ -30,38 +31,46 @@ module {
         #ModifyTable;
         #ModifyMenuItem;
         #ModifyMenuItemPoint;
-        #ModifyEmployeePoints;
+        #ModifyEmployeePoints
     };
 
     public type User = {
+        name : Text;
+        email : Text;
+        reviewPoint : Review.UserPoint;
+        point : Review.Point;
+        order : ?Cart.Order
+    };
+
+    public type UserMap = Map.Map<Principal, User>;
+
+    public type Employee = {
         name : Text;
         principal : Principal;
         role : UserRole;
         allowedOperations : [Operation];
         id : Nat;
         image : ?Blob;
-        buyingScore : Nat8;
-        point : [Point.EmployeePoint];
-        order : ?Cart.Order;
+        review : [Review.EmployeeReview]
     };
 
-    public type UserMap = Map.Map<Principal, User>;
+    public type EmployeeMap = Map.Map<Principal, Employee>;
 
-    //// Get User
-    public func get(userMap : UserMap, principal : Principal) : ?User {
-        return Map.get(userMap, phash, principal);
+    // Get Employee
+    public func get(userMap : EmployeeMap, principal : Principal) : ?Employee {
+        return Map.get(userMap, phash, principal)
     };
 
-    //// put User
-    public func put(userMap : UserMap, p : Principal, user : User) : () {
-        return Map.set(userMap, phash, p, user);
+    // put Employee
+    public func put(userMap : EmployeeMap, p : Principal, user : Employee) : () {
+        return Map.set(userMap, phash, p, user)
     };
 
-    ///// add New user specefic with oprations
-    public func new(userMap : UserMap, principal : Principal, name : Text, role : UserRole, allowedOperations : [Operation]) : () {
+    // add New user specefic with oprations
+    public func new(userMap : EmployeeMap, principal : Principal, name : Text, role : UserRole, allowedOperations : [Operation]) : () {
         let id = Map.size(userMap) +1;
 
-        let user : User = {
+        let user : Employee = {
             name = name;
             principal = principal;
             role = role;
@@ -69,85 +78,84 @@ module {
             id = id;
             image = null;
             buyingScore = 0;
-            point = [];
-            order = null;
+            review = [];
+            order = null
         };
 
         put(userMap, principal, user);
 
-        return;
+        return
     };
 
-    public func canPerform(userMap : UserMap, p : Principal, operation : Operation) : Bool {
+    public func canPerform(userMap : EmployeeMap, p : Principal, operation : Operation) : Bool {
         let user = get(userMap, p);
 
         switch (user) {
             case (null) {
-                return false;
+                return false
             };
             case (?user) {
                 if (user.role == #Admin) return true;
 
                 for (o in user.allowedOperations.vals()) {
-                    if (operation == o) return true;
+                    if (operation == o) return true
                 };
 
-                return false;
-            };
-        };
+                return false
+            }
+        }
     };
 
-    public func hasPoint(userMap : UserMap, caller : Principal, employeeId : Principal) : Bool {
+    public func hasPoint(userMap : EmployeeMap, caller : Principal, employeeId : Principal) : Bool {
         let user = get(userMap, employeeId);
 
         switch (user) {
             case (null) {
-                return false;
+                return false
             };
             case (?user) {
-                for (point in user.point.vals()) {
-                    if (point.pointBy == caller) {
-                        return true;
-                    };
-                };
+                for (review in user.review.vals()) {
+                    if (review.pointBy == caller) {
+                        return true
+                    }
+                }
             };
 
         };
-        return false;
+        return false
     };
 
-    public func replaceUserPointByPrincipal(userMap : UserMap, employeeId : Principal, newPoint : Point.EmployeePoint) : Bool {
+    public func replaceUserPointByPrincipal(userMap : EmployeeMap, employeeId : Principal, newPoint : Review.EmployeeReview) : Bool {
         switch (get(userMap, employeeId)) {
             case (?user) {
                 // Filter out the specific MenuPoint
-                let updatedPoints = Array.filter<Point.EmployeePoint>(
-                    user.point,
-                    func(point) {
-                        point.pointBy != employeeId;
+                let updatedPoints = Array.filter<Review.EmployeeReview>(
+                    user.review,
+                    func(review) {
+                        review.pointBy != employeeId
                     },
                 );
 
                 // Add the new MenuPoint
-                let newPoints = Array.append<Point.EmployeePoint>(updatedPoints, [newPoint]);
+                let newPoints = Array.append<Review.EmployeeReview>(updatedPoints, [newPoint]);
 
                 // Update the Menuuser with the new points array
 
-                let updateduser : User = {
+                let updateduser : Employee = {
                     name = user.name;
                     principal = user.principal;
                     role = user.role;
                     allowedOperations = user.allowedOperations;
                     id = user.id;
                     image = user.image;
-                    buyingScore = user.buyingScore;
-                    point = newPoints;
+                    review = newPoints;
                     order = null;
 
                 };
                 put(userMap, employeeId, updateduser);
-                return true;
+                return true
             };
-            case null { return false };
-        };
-    };
-};
+            case null { return false }
+        }
+    }
+}

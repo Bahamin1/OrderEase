@@ -21,7 +21,7 @@ module {
         reserveTime : ?Time.Time;
         userWantsToJoin : [Principal];
         seatedCustomers : [Principal];
-        order : ?Cart.Order;
+        order : ?Cart.Order
     };
 
     public type TableMap = Map.Map<Nat, Table>;
@@ -29,12 +29,12 @@ module {
     /////table get from map
 
     public func get(tables : TableMap, key : Nat) : ?Table {
-        return Map.get<Nat, Table>(tables, nhash, key);
+        return Map.get<Nat, Table>(tables, nhash, key)
     };
 
     // table put to map
     public func put(tables : TableMap, key : Nat, value : Table) : () {
-        return Map.set<Nat, Table>(tables, nhash, key, value);
+        return Map.set<Nat, Table>(tables, nhash, key, value)
     };
 
     // Initialize tables
@@ -59,12 +59,12 @@ module {
     public func reserve(tables : TableMap, tableId : Nat, reservedBy : Principal) : Result.Result<TableMap, Text> {
         switch (get(tables, tableId)) {
             case null {
-                return #err("Table ID out of range.");
+                return #err("Table ID out of range.")
             };
             case (?table) {
                 switch (table.reservedBy) {
                     case (?reservedBy) {
-                        return #err("Table already reserved.");
+                        return #err("Table already reserved.")
                     };
                     case (null) {
                         let updatedTable : Table = {
@@ -74,27 +74,27 @@ module {
                             reserveTime = ?Time.now();
                             userWantsToJoin = [];
                             seatedCustomers = [];
-                            order = null;
+                            order = null
                         };
                         put(tables, tableId, updatedTable);
-                        return #ok(tables);
-                    };
-                };
+                        return #ok(tables)
+                    }
+                }
             };
 
-        };
+        }
     };
 
     // Function to unreserve a table
     public func unreserve(tables : TableMap, tableId : Nat) : Result.Result<TableMap, Text> {
         switch (get(tables, tableId)) {
             case null {
-                return #err("Table ID out of range.");
+                return #err("Table ID out of range.")
             };
             case (?table) {
                 switch (table.reservedBy) {
                     case (null) {
-                        return #err("Table already Free.");
+                        return #err("Table already Free.")
                     };
                     case (?reservedBy) {
                         let updatedTable : Table = {
@@ -108,32 +108,32 @@ module {
 
                         };
                         put(tables, tableId, updatedTable);
-                        return #ok(tables);
-                    };
-                };
+                        return #ok(tables)
+                    }
+                }
             };
 
-        };
+        }
     };
 
     // Function to check if a table is isReserved
     public func isReserved(tables : TableMap, tableId : Nat) : Bool {
         switch (get(tables, tableId)) {
             case (null) {
-                return false;
+                return false
             };
             case (?table) {
                 switch (table.reservedBy) {
                     case (null) {
-                        return false;
+                        return false
                     };
                     case (?reservedBy) {
-                        return true;
+                        return true
                     };
 
-                };
-            };
-        };
+                }
+            }
+        }
     };
 
     /**
@@ -149,24 +149,24 @@ module {
         for ((tableId, table) in Map.entries(tables)) {
             switch (table.reservedBy) {
                 case (null) {
-                    return Buffer.Buffer<Nat>(0);
+                    return Buffer.Buffer<Nat>(0)
                 };
                 case (?p) {
                     if (p == principal) {
-                        reservedTables.add(tableId);
-                    };
-                };
-            };
+                        reservedTables.add(tableId)
+                    }
+                }
+            }
         };
 
-        return reservedTables;
+        return reservedTables
     };
 
     // Check if the table exists and is reserved by the specified principal.
-    public func canUnreserveTable(userMap : User.UserMap, tables : TableMap, p : Principal, tableId : Nat) : Bool {
-        switch (User.canPerform(userMap, p, #UnreserveTable)) {
+    public func canUnreserveTable(employeeMap : User.EmployeeMap, tables : TableMap, p : Principal, tableId : Nat) : Bool {
+        switch (User.canPerform(employeeMap, p, #UnreserveTable)) {
             case (true) {
-                return true;
+                return true
             };
             case (false) {
                 if (isReserved(tables, tableId)) {
@@ -177,20 +177,20 @@ module {
                                 case (null) { return false };
                                 case (?reservedBy) {
                                     if (reservedBy == p) {
-                                        return true;
+                                        return true
                                     } else {
-                                        return false;
-                                    };
-                                };
-                            };
-                        };
+                                        return false
+                                    }
+                                }
+                            }
+                        }
                     };
 
                 };
 
-            };
+            }
         };
-        return false;
+        return false
     };
 
     public func requestToJoinTable(tableMap : TableMap, tableId : Nat, p : Principal) : () {
@@ -206,7 +206,7 @@ module {
                     reserveTime = table.reserveTime;
                     userWantsToJoin = addrequest;
                     seatedCustomers = table.seatedCustomers;
-                    order = table.order;
+                    order = table.order
                 };
                 return;
 
@@ -232,11 +232,11 @@ module {
                             reserveTime = table.reserveTime;
                             userWantsToJoin = removedPrincipal;
                             seatedCustomers = table.seatedCustomers;
-                            order = table.order;
+                            order = table.order
                         };
                         put(tableMap, tableId, updatedUserWantsToJoin);
-                        Debug.print("user successfully removed from wants to join");
-                    };
+                        Debug.print("user successfully removed from wants to join")
+                    }
                 };
 
                 switch (table.seatedCustomers) {
@@ -250,26 +250,26 @@ module {
                             reserveTime = table.reserveTime;
                             userWantsToJoin = table.userWantsToJoin;
                             seatedCustomers = newSeated;
-                            order = table.order;
+                            order = table.order
                         };
                         put(tableMap, tableId, updatedSeatedCustomers);
                         Debug.print("user successfully add to seated customer");
 
-                        return newSeated;
+                        return newSeated
                     };
 
-                };
-            };
-        };
+                }
+            }
+        }
     };
 
     func removeElementFromArray(arr : [Principal], valueToRemove : Principal) : [Principal] {
         return Array.filter<Principal>(
             arr,
             func(x : Principal) : Bool {
-                x != valueToRemove;
+                x != valueToRemove
             },
-        );
+        )
     };
 
-};
+}

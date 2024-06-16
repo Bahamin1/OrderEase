@@ -1,45 +1,49 @@
 import Time "mo:base/Time";
+import Nat "mo:base/Nat";
 
 module {
-
-    public type MenuPoint = {
+    public type MenuReview = {
         id : Nat;
         comment : ?Text;
         pointBy : Principal;
-        point : Numb;
+        star : Star;
         suggest : Bool;
         cratedAt : Time.Time;
-        image : ?[Blob];
+        image : ?[Blob]
     };
 
-    public type Numb = {
+    public type Star = {
         #One;
         #Two;
         #Three;
         #Four;
-        #Five;
+        #Five
     };
 
-    public type EmployeePoint = {
+    public type EmployeeReview = {
         pointBy : Principal;
         comment : ?Text;
-        point : Numb;
-        cratedAt : Time.Time;
+        star : Star;
+        cratedAt : Time.Time
     };
 
+    public type Point = Nat;
+
+    public type UserPoint = Point;
+
     // let nextPointId : Nat = 0;
-    // public func addMenuPoint(menuMap : Menu.MenuMap, menuId : Nat, p : Principal, cm : ?Text, point : Numb, suggest : Bool, image : [Blob]) : Result.Result<(Text), Text> {
+    // public func addMenuPoint(menuMap : Menu.MenuMap, menuId : Nat, p : Principal, cm : ?Text, star : Star, suggest : Bool, image : [Blob]) : Result.Result<(Text), Text> {
 
     //     switch (M.get(menuMap, id)) {
     //         case (null) {
     //             return #err("The menu item with id " #Nat.toText(menuId) # " does not exist!");
     //         };
     //         case (?menu) {
-    //             let newMenuPoint = Buffer.fromArray<MenuPoint>(menu.point);
+    //             let newMenuPoint = Buffer.fromArray<MenuReview>(menu.star);
     //             newMenuPoint.add({
     //                 comment = cm;
     //                 pointBy = p;
-    //                 point = point;
+    //                 star = star;
     //                 suggest = suggest;
     //                 cratedAt = Time.now();
     //                 image = [image];
@@ -51,7 +55,7 @@ module {
     //                 name = menu.name;
     //                 price = menu.price;
     //                 description = menu.description;
-    //                 point = Buffer.toArray(newMenuPoint);
+    //                 star = Buffer.toArray(newMenuPoint);
     //                 image = ?Blob;
     //             };
     //         };
@@ -59,4 +63,4 @@ module {
 
     // };
 
-};
+}

@@ -5,7 +5,7 @@ import Map "mo:map/Map";
 import { nhash; phash } "mo:map/Map";
 
 import Menu "Menu";
-import Point "Point";
+import Review "Review";
 
 module Cart {
 
@@ -13,20 +13,20 @@ module Cart {
 
     public type OrderType = {
         #OnTable;
-        #TakeOut;
+        #TakeOut
     };
 
     public type CartItem = {
         quantity : Nat;
         itemId : Nat;
-        createdAt : Time.Time;
+        createdAt : Time.Time
     };
 
     public type OrderStatus = {
         #Pending;
         #Preparing;
         #Delivered;
-        #Canceled;
+        #Canceled
     };
 
     public type Order = {
@@ -36,7 +36,7 @@ module Cart {
         totalPrice : Float;
         status : OrderStatus;
         tableNumber : Nat;
-        orderTime : Time.Time;
+        orderTime : Time.Time
     };
 
-};
+}
