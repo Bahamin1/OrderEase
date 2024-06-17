@@ -149,7 +149,7 @@ shared ({ caller = manager }) actor class Dorder() = this {
     };
   };
 
-  private shared ({ caller }) func seatOnTable(tableId : Nat) : async Result.Result<Text, Text> {
+  public shared ({ caller }) func seatOnTable(tableId : Nat) : async Result.Result<Text, Text> {
     if (Table.isReserved(tableMap, tableId) != true) {
       return #err("This table already open for Reserve");
     };
@@ -184,7 +184,7 @@ shared ({ caller = manager }) actor class Dorder() = this {
       case (?table) {
         switch (table.userWantsToJoin) {
           case (is) {
-            users := is;
+            users := Iter.toArray<Principal>(is.vals());
             return #ok(users);
           };
         };
