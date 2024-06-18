@@ -7,7 +7,7 @@ import Result "mo:base/Result";
 import Text "mo:base/Text";
 import Time "mo:base/Time";
 import Map "mo:map/Map";
-import { nhash } "mo:map/Map";
+import { nhash; phash } "mo:map/Map";
 
 import Cart "Cart";
 import Log "Log";
@@ -27,7 +27,7 @@ shared ({ caller = manager }) actor class Dorder() = this {
   stable var logMap : Log.LogMap = Map.new<Nat, Log.Log>();
 
   public shared ({ caller }) func getLogs(logs : Log.Catagory) : async Result.Result<[Log.Log], Text> {
-    if (User.canPerform(employeeMap, caller, #MonitorLogs) != true) {
+    if (User.employeeCanPerform(employeeMap, caller, #MonitorLogs) != true) {
       return #err("the caller " #Principal.toText(caller) # " dose not have permission Monitor Logs!");
     };
     return #ok(Log.getLogsByCategory(logMap, logs));
@@ -38,73 +38,63 @@ shared ({ caller = manager }) actor class Dorder() = this {
   stable var userMap : User.UserMap = Map.new<Principal, User.User>();
 
   stable var employeeMap : User.EmployeeMap = Map.new<Principal, User.Employee>();
+  User.new(userMap, guest, "bahamin", "bahamindehpour@gmail.com", #Admin, 09354706897, null, []);
+  User.hire(employeeMap, guest, #Admin, "Bahamin", "bahamindehpour@gmail.com", 09354706897, null, []);
 
-  User.new(employeeMap, guest, "ADMIN", #Admin, []);
+  public shared ({ caller }) func registerAndUpdateMember(name : Text, email : Text, number : Nat, image : ?Blob) : async (Text) {
 
-  public shared ({ caller }) func registerMemberNew(name : Text, image : ?Blob) : async Result.Result<(), Text> {
-    switch (User.get(employeeMap, caller)) {
-      case (?employee) {
-        return #err("User " # Principal.toText(caller) # " Already Registered!");
-      };
-      case (null) {
-        let allowedOperations = [
-          #ReserveTable,
-          #PayTable,
-          #ModifyMenuItemPoint,
-          #ModifyEmployeePoints,
-        ];
+    let allowedOperations = [
+      #ReserveTable,
+      #PayTable,
+      #CanTakeAway,
+      #ModifyMenuItemPoint,
+      #ModifyEmployeePoints,
+    ];
 
-        User.new(employeeMap, caller, name, #Customer, allowedOperations);
-        Log.add(logMap, #Member, "Member " # Principal.toText(caller) # " has been Registered!");
-        return #ok();
-      };
+    User.new(userMap, caller, name, email, #Customer, number, image, allowedOperations);
+
+    if (User.get(userMap, caller) == null) {
+      Log.add(logMap, #Member, "Member " # Principal.toText(caller) # " has been Added SuccessFully!");
+    } else {
+      Log.add(logMap, #Member, "Member " # Principal.toText(caller) # " has been Updated SuccessFully!");
     };
+
+    return "Wellcome!";
+
   };
 
-  public shared ({ caller }) func addManager(principal : Principal, name : Text, allowedOperations : [User.Operation]) : async Result.Result<(), Text> {
-    if (User.canPerform(employeeMap, caller, #HireManager) != true) {
+  public shared ({ caller }) func hireOrUpdateEmployee(principal : Principal, role : User.UserRole, allowedOperations : [User.Operation]) : async Result.Result<(Text), Text> {
+    if (User.employeeCanPerform(employeeMap, caller, #Hire) != true) {
       return #err("The caller " # Principal.toText(caller) # " havent Opration for this func");
     };
-
-    switch (User.get(employeeMap, principal)) {
-      case (?is) {
-        User.new(employeeMap, is.principal, is.name, #Manager, allowedOperations);
-        Log.add(logMap, #Member, "Member " #Principal.toText(principal) # " updated to Manager By " # Principal.toText(caller) # "!");
-        return #ok();
-      };
+    //check if principal is a user or not ! must first user add to system first;
+    switch (Map.get(userMap, phash, principal)) {
       case (null) {
-        User.new(employeeMap, principal, name, #Manager, allowedOperations);
-        Log.add(logMap, #Member, "New Manager " # Principal.toText(principal) # " Added  By " # Principal.toText(caller) # "!");
-        return #ok();
+        Log.add(logMap, #Personnel, "" #Principal.toText(caller) # " couldn't hire " # Principal.toText(principal) # " becuse didn't have an account in the system!");
+        return #err("" #Principal.toText(principal) # " Must create an account on the system !");
       };
-    };
-  };
-
-  public shared ({ caller }) func addEmployee(principal : Principal, name : Text, allowedOperations : [User.Operation]) : async Result.Result<(), Text> {
-    if (User.canPerform(employeeMap, caller, #HireEmployee) != true) {
-      return #err("The caller " # Principal.toText(caller) # " havent Opration for this func");
-    };
-
-    switch (User.get(employeeMap, principal)) {
       case (?is) {
-        User.new(employeeMap, is.principal, is.name, #Employee, allowedOperations);
-        Log.add(logMap, #Member, "Member " #Principal.toText(principal) # " updated to Employee By " # Principal.toText(caller) # "!");
-        return #ok();
-      };
-      case (null) {
-        User.new(employeeMap, principal, name, #Employee, allowedOperations);
-        Log.add(logMap, #Member, "New Member " # Principal.toText(principal) # " Added By " # Principal.toText(caller) # "!");
-        return #ok();
+
+        User.hire(employeeMap, principal, role, is.name, is.email, is.number, is.image, allowedOperations);
+        Log.add(logMap, #Personnel, "" #Principal.toText(caller) # " hire or updated new Employee by  " # Principal.toText(principal) # "!");
+        return #ok("Success");
       };
     };
   };
 
-  public shared func getMember(p : Principal) : async ?User.Employee {
-    let member = User.get(employeeMap, p);
-    return member;
+  public shared query func getUser(p : Principal) : async ?User.User {
+    return User.get(userMap, p);
   };
 
-  public shared func getAllMembersNew() : async [User.Employee] {
+  public shared query func getAllUser() : async [User.User] {
+    return Iter.toArray(Map.vals<Principal, User.User>(userMap));
+  };
+
+  public shared query func getEmployee(p : Principal) : async ?User.Employee {
+    return Map.get(employeeMap, phash, p);
+  };
+
+  public shared query func getAllEmployee() : async [User.Employee] {
     return Iter.toArray(Map.vals<Principal, User.Employee>(employeeMap));
   };
 
@@ -113,7 +103,7 @@ shared ({ caller = manager }) actor class Dorder() = this {
   stable var tableMap : Table.TableMap = Map.new<Nat, Table.Table>();
 
   public shared ({ caller }) func addTableNew(tableNumber : Nat, capacity : Nat) : async Result.Result<(Text), Text> {
-    if (User.canPerform(employeeMap, caller, #ModifyTable) != true) {
+    if (User.employeeCanPerform(employeeMap, caller, #ModifyTable) != true) {
       return #err("The caller " #Principal.toText(caller) # " dose not have permission to add table!");
     };
 
@@ -138,7 +128,7 @@ shared ({ caller = manager }) actor class Dorder() = this {
   // The table you're trying to access is reserved.
   // Do you want to request to join this table? This will call the SeatOnTable function.
   public shared ({ caller }) func reserveTableNew(tableId : Nat) : async Result.Result<Text, Text> {
-    if (User.canPerform(employeeMap, caller, #ReserveTable) != true) {
+    if (User.userCanPerform(userMap, caller, #ReserveTable) != true) {
       return #err("The caller " #Principal.toText(caller) # " dose not have permission Reserve Table!");
     };
     switch (Table.reserve(tableMap, tableId, caller)) {
@@ -215,16 +205,16 @@ shared ({ caller = manager }) actor class Dorder() = this {
   stable var menuMap : Menu.MenuMap = Map.new<Nat, Menu.MenuItem>();
 
   public shared ({ caller }) func addMenuItem(newMenuItem : Menu.NewMenuItem) : async Result.Result<Text, Text> {
-    if (User.canPerform(employeeMap, caller, #ModifyMenuItem) != true) {
+    if (User.employeeCanPerform(employeeMap, caller, #ModifyMenuItem) != true) {
       return #err("The caller " #Principal.toText(caller) # " dose not have permission to add menu item!");
     };
     Menu.new(menuMap, newMenuItem);
-    Log.add(logMap, #Menu, "New Menu Added By " #Principal.toText(caller) # "!");
+    Log.add(logMap, #Menu, "New Menu with id " #Nat.toText(Map.size(menuMap)) # " Added By " #Principal.toText(caller) # "!");
     return #ok("Menu Added Successfully");
   };
 
   public shared ({ caller }) func updateMenuItem(menuId : Nat, newMenuItem : Menu.NewMenuItem) : async Result.Result<Text, Text> {
-    if (User.canPerform(employeeMap, caller, #ModifyMenuItem) != true) {
+    if (User.employeeCanPerform(employeeMap, caller, #ModifyMenuItem) != true) {
       return #err("The caller " #Principal.toText(caller) # " dose not have permission to update menu item!");
     };
 
@@ -241,7 +231,7 @@ shared ({ caller = manager }) actor class Dorder() = this {
   };
 
   public shared ({ caller }) func removeMenuItem(menuId : Nat) : async Result.Result<Text, Text> {
-    if (User.canPerform(employeeMap, caller, #ModifyMenuItem) != true) {
+    if (User.employeeCanPerform(employeeMap, caller, #ModifyMenuItem) != true) {
       return #err("The caller " #Principal.toText(caller) # " dose not have permission to remove menu item!");
     };
 
@@ -264,84 +254,73 @@ shared ({ caller = manager }) actor class Dorder() = this {
 
   //--------------------------- Review Functions ----------------------------\\
 
-  public shared ({ caller }) func addPointToItem(menuId : Nat, star : Review.Star, suggest : Bool, comment : ?Text, image : ?[Blob]) : async Result.Result<Text, Text> {
-    if (User.canPerform(employeeMap, caller, #ModifyMenuItemPoint) != true) {
-      return #err("The caller " #Principal.toText(caller) # " dose not have permission to Review an item!");
+  public shared ({ caller }) func addOrUpdateItemScore(menuId : Nat, star : Review.Star, suggest : Bool, comment : ?Text, image : ?[Blob]) : async Result.Result<Text, Text> {
+    if (User.userCanPerform(userMap, caller, #ModifyMenuItemPoint) != true) {
+      return #err("The caller " #Principal.toText(caller) # " dose not have permission to Review an item create a account first or login to your account!");
     };
 
     switch (Menu.get(menuMap, menuId)) {
       case null {
-        return #err("The menu item with id " #Nat.toText(menuId) # " does not exist!");
+        return #err("The menu item  " #Nat.toText(menuId) # " does not exist!");
       };
 
       case (?menuItem) {
 
         if (Menu.hasPoint(menuMap, menuId, caller) == true) {
-          return #err("The caller " #Principal.toText(caller) # " has already pointed this item!");
+          let newPoint : Review.MenuReview = {
+            id = menuId;
+            comment = comment;
+            pointBy = caller;
+            star = star;
+            suggest = suggest;
+            cratedAt = Time.now();
+            image = image;
+          };
+          let newItemScore = Menu.replaceNewItemScore(menuItem, menuId, caller, newPoint);
+          Map.set(menuMap, nhash, menuId, newItemScore);
+          Log.add(logMap, #MenuReview, "" #Principal.toText(caller) # " updated own Menu Review " #Nat.toText(menuId) # "!");
+          return #ok("Update Success!");
+
+        } else {
+
+          let newMenuPoint = Buffer.fromArray<Review.MenuReview>(menuItem.score);
+          newMenuPoint.add({
+            id = menuId;
+            comment = comment;
+            pointBy = caller;
+            star = star;
+            suggest = suggest;
+            cratedAt = Time.now();
+            image = image;
+          });
+
+          let newMenuItem : Menu.MenuItem = {
+            id = menuItem.id;
+            name = menuItem.name;
+            price = menuItem.price;
+            stock = menuItem.stock;
+            description = menuItem.description;
+            score = Buffer.toArray(newMenuPoint);
+            image = menuItem.image;
+          };
+
+          Map.set(menuMap, nhash, menuId, newMenuItem);
+          Log.add(logMap, #MenuReview, "The User " #Principal.toText(caller) # " added a star to the menu item with id " #Nat.toText(menuId));
+          return #ok("Review added to menu item " #Nat.toText(menuId) # "!");
         };
-
-        let newMenuPoint = Buffer.fromArray<Review.MenuReview>(menuItem.star);
-        newMenuPoint.add({
-          id = menuId;
-          comment = comment;
-          pointBy = caller;
-          star = star;
-          suggest = suggest;
-          cratedAt = Time.now();
-          image = image;
-        });
-
-        let newMenuItem : Menu.MenuItem = {
-          id = menuItem.id;
-          name = menuItem.name;
-          price = menuItem.price;
-          stock = menuItem.stock;
-          description = menuItem.description;
-          star = Buffer.toArray(newMenuPoint);
-          image = menuItem.image;
-        };
-
-        Menu.put(menuMap, menuId, newMenuItem);
-        Log.add(logMap, #MenuReview, "The User " #Principal.toText(caller) # " added a star to the menu item with id " #Nat.toText(menuId));
-        return #ok("Review added to menu item " #Nat.toText(menuId) # "!");
-      };
-    };
-  };
-
-  public shared ({ caller }) func updateMenuPoint(menuId : Nat, comment : ?Text, star : Review.Star, suggest : Bool, image : ?[Blob]) : async Result.Result<Text, Text> {
-    if (Menu.hasPoint(menuMap, menuId, caller) != true) {
-      return #err("this member doesnt star this menu");
-    };
-    let newPoint : Review.MenuReview = {
-      id = menuId;
-      comment = comment;
-      pointBy = caller;
-      star = star;
-      suggest = suggest;
-      cratedAt = Time.now();
-      image = image;
-    };
-    let filteredPoint = Menu.replaceMenuPointByPrincipal(menuMap, menuId, caller, newPoint);
-    switch (filteredPoint) {
-      case (false) {
-        return #err(" " #Principal.toText(caller) # " have not any Review in this Menu ID !");
-      };
-      case (true) {
-        Log.add(logMap, #MenuReview, "" #Principal.toText(caller) # " update their own Menu Review " #Nat.toText(menuId) # "!");
-
-        return #ok("Update Success!");
       };
     };
   };
 
   public shared ({ caller }) func addPointToEmployee(employeeId : Principal, star : Review.Star, comment : ?Text) : async Result.Result<Text, Text> {
-    if (User.canPerform(employeeMap, caller, #ModifyEmployeePoints) != true) {
-      return #err("the caller " #Principal.toText(caller) # " dose not have permission Review to Emoloyee");
+    if (User.userCanPerform(userMap, caller, #ModifyEmployeePoints) != true) {
+      return #err("the caller " #Principal.toText(caller) # " dose not have permission Review to Emoloyee,  create an account first !");
     };
     if (User.hasPoint(employeeMap, caller, employeeId) == true) {
+
       return #err("Member " #Principal.toText(caller) # " already have a Review this employee!");
     };
-    switch (User.get(employeeMap, employeeId)) {
+    switch (Map.get(employeeMap, phash, employeeId)) {
       case (null) {
         return #err("The employee with principal " #Principal.toText(employeeId) # " does not exist!");
       };
@@ -355,7 +334,9 @@ shared ({ caller = manager }) actor class Dorder() = this {
         });
         let updateEmployee : User.Employee = {
           name = employee.name;
-          principal = employeeId;
+          email = employee.email;
+          identity = employeeId;
+          number = employee.number;
           role = employee.role;
           allowedOperations = employee.allowedOperations;
           id = employee.id;
@@ -363,7 +344,7 @@ shared ({ caller = manager }) actor class Dorder() = this {
           review = Buffer.toArray(employeeReview);
         };
 
-        User.put(employeeMap, employeeId, updateEmployee);
+        Map.set(employeeMap, phash, employeeId, updateEmployee);
         Log.add(logMap, #EmployeeReview, "" #Principal.toText(caller) # " Gave Review to employee " #Principal.toText(employeeId) # "!");
 
         return #ok("Review added to employee " #Principal.toText(employeeId) # " successfully!");
@@ -396,7 +377,7 @@ shared ({ caller = manager }) actor class Dorder() = this {
   };
 
   public shared ({ caller }) func iterateToEployeeByAdmin(point : Review.Star) : async Result.Result<(), Text> {
-    if (User.canPerform(employeeMap, caller, #ModifyEmployeePoints) != true) {
+    if (User.employeeCanPerform(employeeMap, caller, #ModifyEmployeePoints) != true) {
       return #err("the caller " #Principal.toText(caller) # " dose not have permission Review to Emoloyee");
     };
 
@@ -414,7 +395,9 @@ shared ({ caller = manager }) actor class Dorder() = this {
 
       let updateEmployee : User.Employee = {
         name = member.name;
-        principal = member.principal;
+        identity = member.identity;
+        email = member.email;
+        number = member.number;
         role = member.role;
         allowedOperations = member.allowedOperations;
         id = member.id;
@@ -422,7 +405,7 @@ shared ({ caller = manager }) actor class Dorder() = this {
         review = Buffer.toArray(employeeReview);
       };
 
-      User.put(employeeMap, member.principal, updateEmployee);
+      Map.set(employeeMap, phash, member.identity, updateEmployee);
     };
 
     return #ok();

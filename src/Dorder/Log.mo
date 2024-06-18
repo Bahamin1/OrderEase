@@ -9,7 +9,7 @@ module {
         id : Nat;
         message : Text;
         createdAt : Time.Time;
-        catagory : Catagory
+        catagory : Catagory;
     };
 
     public type Catagory = {
@@ -18,13 +18,14 @@ module {
         #Menu;
         #Order;
         #EmployeeReview;
-        #MenuReview
+        #MenuReview;
+        #Personnel;
     };
 
     public type LogMap = Map.Map<Nat, Log>;
 
     public func put(logMap : LogMap, key : Nat, value : Log) : () {
-        return Map.set(logMap, nhash, key, value)
+        return Map.set(logMap, nhash, key, value);
     };
 
     public func add(logMap : LogMap, catagory : Catagory, message : Text) : () {
@@ -34,12 +35,12 @@ module {
             id = id;
             message = message;
             createdAt = Time.now();
-            catagory = catagory
+            catagory = catagory;
         };
 
         put(logMap, id, newLog);
 
-        return
+        return;
     };
 
     public func getLogsByCategory(logMap : LogMap, per : Catagory) : [Log] {
@@ -50,12 +51,12 @@ module {
                 case (is) {
 
                     if (is == per) {
-                        filteredLogs := Array.append<Log>(filteredLogs, [cata])
-                    }
-                }
-            }
+                        filteredLogs := Array.append<Log>(filteredLogs, [cata]);
+                    };
+                };
+            };
         };
         return filteredLogs;
 
-    }
-}
+    };
+};

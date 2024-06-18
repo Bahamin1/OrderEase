@@ -16,8 +16,8 @@ module {
         price : Nat;
         stock : Bool;
         description : Text;
-        star : [Review.MenuReview];
-        image : ?Blob
+        score : [Review.MenuReview];
+        image : ?Blob;
     };
 
     public type NewMenuItem = {
@@ -32,12 +32,12 @@ module {
     public type MenuMap = Map.Map<Nat, MenuItem>;
 
     public func get(menuMap : MenuMap, key : Nat) : ?MenuItem {
-        return Map.get<Nat, MenuItem>(menuMap, nhash, key)
+        return Map.get<Nat, MenuItem>(menuMap, nhash, key);
     };
 
     // MenuItem put to map
     public func put(menuMap : MenuMap, key : Nat, value : MenuItem) : () {
-        return Map.set<Nat, MenuItem>(menuMap, nhash, key, value)
+        return Map.set<Nat, MenuItem>(menuMap, nhash, key, value);
     };
 
     public func new(menuMap : MenuMap, newMenuItem : NewMenuItem) : () {
@@ -49,18 +49,18 @@ module {
             price = newMenuItem.price;
             stock = newMenuItem.stock;
             description = newMenuItem.description;
-            star = [];
-            image = newMenuItem.image
+            score = [];
+            image = newMenuItem.image;
         };
 
         put(menuMap, itemId, newMenu);
-        return
+        return;
     };
 
     public func update(menuMap : MenuMap, menuId : Nat, newMenuItem : NewMenuItem) : Result.Result<Text, Text> {
         switch (get(menuMap, menuId)) {
             case (null) {
-                return #err("The menu item with id " #Nat.toText(menuId) # " does not exist!")
+                return #err("The menu item with id " #Nat.toText(menuId) # " does not exist!");
             };
             case (?item) {
                 let updateItem : MenuItem = {
@@ -70,14 +70,14 @@ module {
                     price = newMenuItem.price;
                     stock = newMenuItem.stock;
                     description = newMenuItem.description;
-                    star = item.star;
-                    image = newMenuItem.image
+                    score = item.score;
+                    image = newMenuItem.image;
                 };
 
                 put(menuMap, menuId, updateItem);
                 return #ok("The menu item with id " #Nat.toText(menuId) # " has been updated!");
 
-            }
+            };
         };
 
     };
@@ -86,49 +86,44 @@ module {
         let menu = get(menuMap, menuId);
         switch (menu) {
             case (null) {
-                return false
+                return false;
             };
             case (?menu) {
-                for (star in menu.star.vals()) {
+                for (star in menu.score.vals()) {
                     if (star.pointBy == p) {
-                        return true
-                    }
-                }
+                        return true;
+                    };
+                };
             };
 
         };
-        return false
+        return false;
     };
 
-    public func replaceMenuPointByPrincipal(menuMap : MenuMap, itemId : Nat, principal : Principal, newPoint : Review.MenuReview) : Bool {
-        switch (get(menuMap, itemId)) {
-            case (?item) {
+    public func replaceNewItemScore(menuItem : MenuItem, menuId : Nat, principal : Principal, newPoint : Review.MenuReview) : MenuItem {
+        switch (menuItem) {
+            case (item) {
                 // Filter out the specific MenuReview
                 let updatedPoints = Array.filter<Review.MenuReview>(
-                    item.star,
-                    func(star) {
-                        star.pointBy != principal
+                    item.score,
+                    func(score) {
+                        score.pointBy != principal;
                     },
                 );
-
                 // Add the new MenuReview
                 let newPoints = Array.append<Review.MenuReview>(updatedPoints, [newPoint]);
-
                 // Update the MenuItem with the new points array
-
                 let updatedItem : MenuItem = {
-                    id = itemId;
+                    id = menuId;
                     name = item.name;
                     price = item.price;
                     stock = item.stock;
                     description = item.description;
-                    star = newPoints;
-                    image = item.image
+                    score = newPoints;
+                    image = item.image;
                 };
-                put(menuMap, itemId, updatedItem);
-                return true
+                return updatedItem;
             };
-            case null { return false }
-        }
-    }
-}
+        };
+    };
+};
