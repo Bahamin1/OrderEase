@@ -1,11 +1,12 @@
 import Array "mo:base/Array";
+import HashMap "mo:base/HashMap";
 import Principal "mo:base/Principal";
 import Result "mo:base/Result";
 import Map "mo:map/Map";
 import { phash } "mo:map/Map";
 
 import Cart "Cart";
-import Point "Point";
+import Review "Review";
 
 // Define the enum for different operations
 module {
@@ -21,12 +22,11 @@ module {
     public type Operation = {
         #ReserveTable;
         #UnreserveTable;
+        #CanTakeAway;
         #PayTable;
         #MonitorLogs;
-        #HireManager;
-        #FireManager;
-        #HireEmployee;
-        #FireEmployee;
+        #Hire;
+        #Fire;
         #ModifyTable;
         #ModifyMenuItem;
         #ModifyMenuItemPoint;
@@ -34,51 +34,148 @@ module {
     };
 
     public type User = {
-        name : Text;
-        principal : Principal;
-        role : UserRole;
-        allowedOperations : [Operation];
         id : Nat;
+        name : Text;
+        number : Nat;
+        email : Text;
+        allowedOperations : [Operation];
+        role : UserRole;
+        reviewPoint : Nat;
+        buyingScore : Nat;
         image : ?Blob;
-        buyingScore : Nat8;
-        point : [Point.EmployeePoint];
         order : ?Cart.Order;
     };
 
-    public type UserMap = Map.Map<Principal, User>;
+    public type Employee = {
+        id : Nat;
+        identity : Principal;
+        name : Text;
+        number : Nat;
+        email : Text;
+        role : UserRole;
+        allowedOperations : [Operation];
+        image : ?Blob;
+        review : [Review.EmployeeReview];
+    };
 
-    //// Get User
+    public type UserMap = Map.Map<Principal, User>;
+    public type EmployeeMap = Map.Map<Principal, Employee>;
+
+    // Get Employee
     public func get(userMap : UserMap, principal : Principal) : ?User {
         return Map.get(userMap, phash, principal);
     };
 
-    //// put User
+    // put Employee
     public func put(userMap : UserMap, p : Principal, user : User) : () {
         return Map.set(userMap, phash, p, user);
     };
 
-    ///// add New user specefic with oprations
-    public func new(userMap : UserMap, principal : Principal, name : Text, role : UserRole, allowedOperations : [Operation]) : () {
+    // add New user specefic with oprations
+    public func new(userMap : UserMap, principal : Principal, name : Text, email : Text, role : UserRole, number : Nat, image : ?Blob, allowedOperations : [Operation]) : () {
         let id = Map.size(userMap) +1;
+        switch (get(userMap, principal)) {
+            case (null) {
 
-        let user : User = {
-            name = name;
-            principal = principal;
-            role = role;
-            allowedOperations = allowedOperations;
-            id = id;
-            image = null;
-            buyingScore = 0;
-            point = [];
-            order = null;
+                let user : User = {
+                    id = id;
+                    name = name;
+                    email = email;
+                    number = number;
+                    allowedOperations = allowedOperations;
+                    role = role;
+                    image = image;
+                    reviewPoint = 0;
+                    buyingScore = 0;
+                    order = null;
+                };
+
+                put(userMap, principal, user);
+
+                return;
+
+            };
+            case (?user) {
+
+                let updateUser : User = {
+                    id = user.id;
+                    name = name;
+                    number = number;
+                    email = email;
+                    image = image;
+                    allowedOperations = user.allowedOperations;
+                    role = user.role;
+                    reviewPoint = user.reviewPoint;
+                    buyingScore = user.buyingScore;
+                    order = user.order;
+                };
+
+                put(userMap, principal, updateUser);
+                return;
+            };
         };
 
-        put(userMap, principal, user);
-
-        return;
     };
 
-    public func canPerform(userMap : UserMap, p : Principal, operation : Operation) : Bool {
+    public func hire(employeeMap : EmployeeMap, p : Principal, role : UserRole, name : Text, email : Text, number : Nat, image : ?Blob, allowedOperations : [Operation]) : () {
+        let employee = Map.get(employeeMap, phash, p);
+        let id = Map.size(employeeMap) +1;
+        switch (employee) {
+            case (null) {
+                let newEmployee : Employee = {
+                    id = id;
+                    identity = p;
+                    name = name;
+                    number = number;
+                    email = email;
+                    role = role;
+                    allowedOperations = allowedOperations;
+                    image = image;
+                    review = [];
+                };
+                Map.set(employeeMap, phash, p, newEmployee);
+                return;
+            };
+            case (?is) {
+
+                let updateUser : Employee = {
+                    id = is.id;
+                    identity = is.identity;
+                    name = is.name;
+                    number = is.number;
+                    email = is.email;
+                    role = role;
+                    allowedOperations = allowedOperations;
+                    image = image;
+                    review = is.review;
+                };
+                Map.set(employeeMap, phash, p, updateUser);
+                return;
+            };
+        };
+
+    };
+
+    public func employeeCanPerform(employeeMap : EmployeeMap, p : Principal, operation : Operation) : Bool {
+        let user = Map.get(employeeMap, phash, p);
+
+        switch (user) {
+            case (null) {
+                return false;
+            };
+            case (?user) {
+                if (user.role == #Admin) return true;
+
+                for (o in user.allowedOperations.vals()) {
+                    if (operation == o) return true;
+                };
+
+                return false;
+            };
+        };
+    };
+
+    public func userCanPerform(userMap : UserMap, p : Principal, operation : Operation) : Bool {
         let user = get(userMap, p);
 
         switch (user) {
@@ -97,16 +194,16 @@ module {
         };
     };
 
-    public func hasPoint(userMap : UserMap, caller : Principal, employeeId : Principal) : Bool {
-        let user = get(userMap, employeeId);
+    public func hasPoint(employeeMap : EmployeeMap, caller : Principal, employeeId : Principal) : Bool {
+        let user = Map.get(employeeMap, phash, employeeId);
 
         switch (user) {
             case (null) {
                 return false;
             };
             case (?user) {
-                for (point in user.point.vals()) {
-                    if (point.pointBy == caller) {
+                for (review in user.review.vals()) {
+                    if (review.pointBy == caller) {
                         return true;
                     };
                 };
@@ -116,35 +213,36 @@ module {
         return false;
     };
 
-    public func replaceUserPointByPrincipal(userMap : UserMap, employeeId : Principal, newPoint : Point.EmployeePoint) : Bool {
-        switch (get(userMap, employeeId)) {
+    public func replaceUserPointByPrincipal(employeeMap : EmployeeMap, employeeId : Principal, newPoint : Review.EmployeeReview) : Bool {
+        switch (Map.get(employeeMap, phash, employeeId)) {
             case (?user) {
                 // Filter out the specific MenuPoint
-                let updatedPoints = Array.filter<Point.EmployeePoint>(
-                    user.point,
-                    func(point) {
-                        point.pointBy != employeeId;
+                let updatedPoints = Array.filter<Review.EmployeeReview>(
+                    user.review,
+                    func(review) {
+                        review.pointBy != employeeId;
                     },
                 );
 
                 // Add the new MenuPoint
-                let newPoints = Array.append<Point.EmployeePoint>(updatedPoints, [newPoint]);
+                let newPoints = Array.append<Review.EmployeeReview>(updatedPoints, [newPoint]);
 
                 // Update the Menuuser with the new points array
 
-                let updateduser : User = {
+                let updateduser : Employee = {
                     name = user.name;
-                    principal = user.principal;
+                    number = user.number;
+                    email = user.email;
+                    identity = employeeId;
                     role = user.role;
                     allowedOperations = user.allowedOperations;
                     id = user.id;
                     image = user.image;
-                    buyingScore = user.buyingScore;
-                    point = newPoints;
+                    review = newPoints;
                     order = null;
 
                 };
-                put(userMap, employeeId, updateduser);
+                Map.set(employeeMap, phash, employeeId, updateduser);
                 return true;
             };
             case null { return false };
