@@ -70,7 +70,7 @@ shared ({ caller = manager }) actor class Dorder() = this {
     //check if principal is a user or not ! must first user add to system first;
     switch (Map.get(userMap, phash, principal)) {
       case (null) {
-        Log.add(logMap, #Personnel, "" #Principal.toText(caller) # " couldn't hire " # Principal.toText(principal) # " becuse didn't have an account in the system!");
+        Log.add(logMap, #Personnel, "" #Principal.toText(caller) # " couldn't hire " # Principal.toText(principal) # " becuse didn't have an account in system!");
         return #err("" #Principal.toText(principal) # " Must create an account on the system !");
       };
       case (?is) {
@@ -78,6 +78,21 @@ shared ({ caller = manager }) actor class Dorder() = this {
         User.hire(employeeMap, principal, role, is.name, is.email, is.number, is.image, allowedOperations);
         Log.add(logMap, #Personnel, "" #Principal.toText(caller) # " hire or updated new Employee by  " # Principal.toText(principal) # "!");
         return #ok("Success");
+      };
+    };
+  };
+
+  public shared ({ caller }) func fireEmployee(employeeId : Principal) : async Result.Result<(), Text> {
+    if (User.employeeCanPerform(employeeMap, caller, #Fire) != true) {
+      return #err("The caller " # Principal.toText(caller) # " havent Opration for this func");
+    };
+    switch (Map.get(employeeMap, phash, employeeId)) {
+      case (null) {
+        return #err("Employee " #Principal.toText(caller) # "Doesnt exist");
+      };
+      case (?user) {
+        Map.delete(employeeMap, phash, employeeId);
+        return #ok();
       };
     };
   };
@@ -239,7 +254,7 @@ shared ({ caller = manager }) actor class Dorder() = this {
       return #err("The menu item with id " #Nat.toText(menuId) # " does not exist!");
     };
 
-    Map.delete<Nat, Menu.MenuItem>(menuMap, nhash, menuId);
+    Map.delete(menuMap, nhash, menuId);
     Log.add(logMap, #Menu, "Item with id " #Nat.toText(menuId) # " has been removed from the menu by " #Principal.toText(caller) # ".");
     return #ok("The menu item with id " #Nat.toText(menuId) # " has been removed!");
   };
