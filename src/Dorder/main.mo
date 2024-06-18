@@ -378,8 +378,8 @@ shared ({ caller = manager }) actor class Dorder() = this {
       star = star;
       cratedAt = Time.now();
     };
-    let filteredPoint = User.replaceUserPointByPrincipal(employeeMap, employeeId, newPoint);
-    switch (filteredPoint) {
+
+    switch (User.replaceUserPointByPrincipal(employeeMap, employeeId, newPoint)) {
       case (false) {
         return #err("" # Principal.toText(caller) # " have not any Review in this employee ID !");
       };
