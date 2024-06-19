@@ -215,10 +215,10 @@ module {
 
     public func replaceUserPointByPrincipal(employeeMap : EmployeeMap, employeeId : Principal, newPoint : Review.EmployeeReview) : Bool {
         switch (Map.get(employeeMap, phash, employeeId)) {
-            case (?user) {
+            case (?employee) {
                 // Filter out the specific MenuPoint
                 let updatedPoints = Array.filter<Review.EmployeeReview>(
-                    user.review,
+                    employee.review,
                     func(review) {
                         review.pointBy != employeeId;
                     },
@@ -227,22 +227,22 @@ module {
                 // Add the new MenuPoint
                 let newPoints = Array.append<Review.EmployeeReview>(updatedPoints, [newPoint]);
 
-                // Update the Menuuser with the new points array
+                // Update the new points array
 
-                let updateduser : Employee = {
-                    name = user.name;
-                    number = user.number;
-                    email = user.email;
+                let updatedemployee : Employee = {
+                    name = employee.name;
+                    number = employee.number;
+                    email = employee.email;
                     identity = employeeId;
-                    role = user.role;
-                    allowedOperations = user.allowedOperations;
-                    id = user.id;
-                    image = user.image;
+                    role = employee.role;
+                    allowedOperations = employee.allowedOperations;
+                    id = employee.id;
+                    image = employee.image;
                     review = newPoints;
                     order = null;
 
                 };
-                Map.set(employeeMap, phash, employeeId, updateduser);
+                Map.set(employeeMap, phash, employeeId, updatedemployee);
                 return true;
             };
             case null { return false };

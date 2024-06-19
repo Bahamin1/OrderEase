@@ -327,14 +327,31 @@ shared ({ caller = manager }) actor class Dorder() = this {
     };
   };
 
-  public shared ({ caller }) func addPointToEmployee(employeeId : Principal, star : Review.Star, comment : ?Text) : async Result.Result<Text, Text> {
+  public shared ({ caller }) func addOrUpdateEmployeeScore(employeeId : Principal, star : Review.Star, comment : ?Text) : async Result.Result<Text, Text> {
     if (User.userCanPerform(userMap, caller, #ModifyEmployeePoints) != true) {
       return #err("the caller " #Principal.toText(caller) # " dose not have permission Review to Emoloyee,  create an account first !");
     };
     if (User.hasPoint(employeeMap, caller, employeeId) == true) {
 
-      return #err("Member " #Principal.toText(caller) # " already have a Review this employee!");
+      let newPoint : Review.EmployeeReview = {
+        pointBy = caller;
+        comment = comment;
+        star = star;
+        cratedAt = Time.now();
+      };
+
+      switch (User.replaceUserPointByPrincipal(employeeMap, employeeId, newPoint)) {
+        case (false) {
+          return #err("employee" # Principal.toText(employeeId) # " does not exist !");
+        };
+        case (true) {
+          Log.add(logMap, #EmployeeReview, "" #Principal.toText(caller) # " Update their own Score employee  " #Principal.toText(employeeId) # "!");
+          return #ok("Update Success!");
+        };
+      };
+
     };
+
     switch (Map.get(employeeMap, phash, employeeId)) {
       case (null) {
         return #err("The employee with principal " #Principal.toText(employeeId) # " does not exist!");
@@ -365,30 +382,6 @@ shared ({ caller = manager }) actor class Dorder() = this {
         return #ok("Review added to employee " #Principal.toText(employeeId) # " successfully!");
       };
     };
-  };
-
-  public shared ({ caller }) func editPointEmployee(employeeId : Principal, star : Review.Star, comment : ?Text, suggest : Bool) : async Result.Result<Text, Text> {
-    if (User.hasPoint(employeeMap, caller, employeeId) != true) {
-      return #err("This caller with principal " #Principal.toText(caller) # " does not have a star for Employee!");
-    };
-
-    let newPoint : Review.EmployeeReview = {
-      pointBy = caller;
-      comment = comment;
-      star = star;
-      cratedAt = Time.now();
-    };
-
-    switch (User.replaceUserPointByPrincipal(employeeMap, employeeId, newPoint)) {
-      case (false) {
-        return #err("" # Principal.toText(caller) # " have not any Review in this employee ID !");
-      };
-      case (true) {
-        Log.add(logMap, #EmployeeReview, "" #Principal.toText(caller) # " Update their own star of employee  " #Principal.toText(employeeId) # "!");
-        return #ok("Update Success!");
-      };
-    };
-
   };
 
   public shared ({ caller }) func iterateToEployeeByAdmin(point : Review.Star) : async Result.Result<(), Text> {
