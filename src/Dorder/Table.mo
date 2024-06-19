@@ -247,4 +247,22 @@ module {
         };
     };
 
+    public func hasSeat(tableMap : TableMap, tableId : Nat, p : Principal) : Bool {
+        switch (get(tableMap, tableId)) {
+            case (null) {
+                return false;
+            };
+            case (?table) {
+                for (element in table.seatedCustomers.vals()) {
+                    if (p == element) {
+                        return true;
+                    };
+                };
+
+                return false;
+            };
+        };
+
+    };
+
 };

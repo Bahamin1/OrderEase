@@ -178,6 +178,10 @@ shared ({ caller = manager }) actor class Dorder() = this {
       return #err("This table already open for Reserve");
     };
 
+    if (Table.hasSeat(tableMap, tableId, caller) == true) {
+      return #err("Caller already seat !");
+    };
+
     Table.requestToJoinTable(tableMap, tableId, caller);
     return #ok("requst sent ! wait for Reserver response");
 
