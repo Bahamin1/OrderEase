@@ -142,7 +142,7 @@ shared ({ caller = manager }) actor class Dorder() = this {
   // When this function is called and results in an error, the employee must be notified.
   // The table you're trying to access is reserved.
   // Do you want to request to join this table? This will call the SeatOnTable function.
-  public shared ({ caller }) func reserveTableNew(tableId : Nat) : async Result.Result<Text, Text> {
+  public shared ({ caller }) func reserveTable(tableId : Nat) : async Result.Result<Text, Text> {
     if (User.userCanPerform(userMap, caller, #ReserveTable) != true) {
       return #err("The caller " #Principal.toText(caller) # " dose not have permission Reserve Table!");
     };
@@ -150,6 +150,22 @@ shared ({ caller = manager }) actor class Dorder() = this {
       case (#ok(updatedTable)) {
         Log.add(logMap, #Table, "Table " #Nat.toText(tableId) # " was Reserved by " #Principal.toText(caller) # "!");
         return #ok("Table reserved successfully.");
+      };
+      case (#err(errorMessage)) {
+        return #err(errorMessage);
+      };
+    };
+  };
+
+  public shared ({ caller }) func unreserveTable(tableId : Nat) : async Result.Result<Text, Text> {
+    if (Table.canUnreserveTable(employeeMap, tableMap, caller, tableId) != true) {
+      return #err("can't unreserve table becuse caller didn't reserve any table !");
+    };
+
+    switch (Table.unreserve(tableMap, tableId)) {
+      case (#ok(updatedTable)) {
+        Log.add(logMap, #Table, "Table " #Nat.toText(tableId) # " was Unreserved by " #Principal.toText(caller) # "!");
+        return #ok("Table " #Nat.toText(tableId) # " was Unreserved!");
       };
       case (#err(errorMessage)) {
         return #err(errorMessage);
@@ -165,22 +181,6 @@ shared ({ caller = manager }) actor class Dorder() = this {
     Table.requestToJoinTable(tableMap, tableId, caller);
     return #ok("requst sent ! wait for Reserver response");
 
-  };
-
-  public shared ({ caller }) func unreserveTableNew(tableId : Nat) : async Result.Result<Text, Text> {
-    if (Table.canUnreserveTable(employeeMap, tableMap, caller, tableId) != true) {
-      return #err("can't unreserve table becuse caller didn't reserve any table !");
-    };
-
-    switch (Table.unreserve(tableMap, tableId)) {
-      case (#ok(updatedTable)) {
-        Log.add(logMap, #Table, "Table " #Nat.toText(tableId) # " was Unreserved by " #Principal.toText(caller) # "!");
-        return #ok("Table " #Nat.toText(tableId) # " was Unreserved!");
-      };
-      case (#err(errorMessage)) {
-        return #err(errorMessage);
-      };
-    };
   };
 
   public shared query ({ caller }) func getRequstesJoinToTable(tableId : Nat) : async Result.Result<[Principal], Text> {
@@ -203,7 +203,7 @@ shared ({ caller = manager }) actor class Dorder() = this {
     };
   };
 
-  public shared ({ caller }) func addguestTotable(tableId : Nat, p : Principal, yesOrNo : Bool) : async Result.Result<[Principal], Text> {
+  public shared ({ caller }) func addGuestTotable(tableId : Nat, p : Principal, yesOrNo : Bool) : async Result.Result<[Principal], Text> {
     if (Table.canUnreserveTable(employeeMap, tableMap, caller, tableId) != true) {
       return #err("this member " #Principal.toText(caller) # " didnt Reserve the table " #Nat.toText(tableId) # "!");
     };
@@ -269,7 +269,7 @@ shared ({ caller = manager }) actor class Dorder() = this {
 
   //--------------------------- Review Functions ----------------------------\\
 
-  public shared ({ caller }) func addOrUpdateItemScore(menuId : Nat, star : Review.Star, suggest : Bool, comment : ?Text, image : ?[Blob]) : async Result.Result<Text, Text> {
+  public shared ({ caller }) func addOrUpdateMenuItemScore(menuId : Nat, star : Review.Star, suggest : Bool, comment : ?Text, image : ?[Blob]) : async Result.Result<Text, Text> {
     if (User.userCanPerform(userMap, caller, #ModifyMenuItemPoint) != true) {
       return #err("The caller " #Principal.toText(caller) # " dose not have permission to Review an item create a account first or login to your account!");
     };
@@ -390,6 +390,7 @@ shared ({ caller = manager }) actor class Dorder() = this {
     };
 
     let allMembers = Map.vals<Principal, User.Employee>(employeeMap);
+
     for (member in allMembers) {
       let newPoint : Review.EmployeeReview = {
         pointBy = caller;
@@ -418,6 +419,7 @@ shared ({ caller = manager }) actor class Dorder() = this {
 
     return #ok();
   };
+
 };
 
 // //member

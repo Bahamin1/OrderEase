@@ -208,6 +208,7 @@ module {
                     seatedCustomers = table.seatedCustomers;
                     order = table.order;
                 };
+                put(tableMap, tableId, updatedTable);
                 return;
 
             };
@@ -221,55 +222,29 @@ module {
         switch (get(tableMap, tableId)) {
             case null { return [] };
             case (?table) {
-                switch (table.userWantsToJoin) {
-                    case (users) {
-                        let removedPrincipal = removeElementFromArray(users, p);
 
-                        let updatedUserWantsToJoin : Table = {
-                            id = tableId;
-                            capacity = table.capacity;
-                            reservedBy = table.reservedBy;
-                            reserveTime = table.reserveTime;
-                            userWantsToJoin = removedPrincipal;
-                            seatedCustomers = table.seatedCustomers;
-                            order = table.order;
-                        };
-                        put(tableMap, tableId, updatedUserWantsToJoin);
-                        Debug.print("user successfully removed from wants to join");
-                    };
+                let removedPrincipal = Array.filter<Principal>(
+                    table.userWantsToJoin,
+                    func(x) {
+                        x != p;
+                    },
+                );
+                let newSeated = Array.append<Principal>(table.seatedCustomers, [p]);
+
+                let updatedSeatedCustomers : Table = {
+                    id = tableId;
+                    capacity = table.capacity;
+                    reservedBy = table.reservedBy;
+                    reserveTime = table.reserveTime;
+                    userWantsToJoin = removedPrincipal;
+                    seatedCustomers = newSeated;
+                    order = table.order;
                 };
+                put(tableMap, tableId, updatedSeatedCustomers);
 
-                switch (table.seatedCustomers) {
-                    case (seat) {
-                        let newSeated = Array.append<Principal>(seat, [p]);
-
-                        let updatedSeatedCustomers : Table = {
-                            id = tableId;
-                            capacity = table.capacity;
-                            reservedBy = table.reservedBy;
-                            reserveTime = table.reserveTime;
-                            userWantsToJoin = table.userWantsToJoin;
-                            seatedCustomers = newSeated;
-                            order = table.order;
-                        };
-                        put(tableMap, tableId, updatedSeatedCustomers);
-                        Debug.print("user successfully add to seated customer");
-
-                        return newSeated;
-                    };
-
-                };
+                return removedPrincipal;
             };
         };
-    };
-
-    func removeElementFromArray(arr : [Principal], valueToRemove : Principal) : [Principal] {
-        return Array.filter<Principal>(
-            arr,
-            func(x : Principal) : Bool {
-                x != valueToRemove;
-            },
-        );
     };
 
 };
