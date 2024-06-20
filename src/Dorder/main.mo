@@ -202,7 +202,7 @@ shared ({ caller = manager }) actor class Dorder() = this {
         };
       };
       case (null) {
-        return #err("there is no request item");
+        return #err("there is no request");
       };
     };
   };
@@ -424,7 +424,32 @@ shared ({ caller = manager }) actor class Dorder() = this {
     return #ok();
   };
 
+  //-----------------------------Cart Functions-------------------------------\\
+
+  stable let cartMap = Map.new<Principal, Cart.CartItem>();
+
+  public shared ({ caller }) func openOrder(orderType : Cart.OrderType) : async Result.Result<Cart.CartItem, Text> {
+
+    let newOrder : Cart.CartItem = {
+      items = [];
+      status = #Pending;
+      orderType = orderType;
+      createdAt = Time.now();
+    };
+    Map.set(cartMap, phash, caller, newOrder);
+    return newOrder;
+
+  };
 };
+
+//   public shared ({ caller }) func addToCart(menuId : Nat, quantity : Nat) : async Result.Result<Cart.CartMap, Text> {
+
+//     if (Menu.isAvailable(menuMap, menuId) != true) {
+//       return #err("this item is not Available ");
+//     };
+
+//   };
+// };
 
 // //member
 // //systeme ray giri baraye ezafe kardan va hazf kardane menu va khadamat

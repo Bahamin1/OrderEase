@@ -126,4 +126,15 @@ module {
             };
         };
     };
+
+    public func isAvailable(menuMap : MenuMap, menuId : Nat) : Bool {
+        switch (get(menuMap, menuId)) {
+            case (?menu) {
+                if (menu.stock == true) {
+                    return true;
+                } else return false;
+            };
+            case (null) { return false };
+        };
+    };
 };

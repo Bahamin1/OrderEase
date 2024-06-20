@@ -1,3 +1,4 @@
+import Buffer "mo:base/Buffer";
 import HashMap "mo:base/HashMap";
 import Principal "mo:base/Principal";
 import Time "mo:base/Time";
@@ -9,34 +10,41 @@ import Review "Review";
 
 module Cart {
 
-    public type TableCartMap = Map.Map<Nat, CartItem>;
+    public type CartMap = Map.Map<Principal, CartItem>;
 
     public type OrderType = {
         #OnTable;
-        #TakeOut
+        #TakeOut;
+    };
+
+    public type Items = {
+        itemId : Nat;
+        quantity : Nat;
     };
 
     public type CartItem = {
-        quantity : Nat;
-        itemId : Nat;
-        createdAt : Time.Time
+        items : [Items];
+        status : OrderStatus;
+        orderType : OrderType;
+        createdAt : Time.Time;
     };
 
     public type OrderStatus = {
         #Pending;
         #Preparing;
         #Delivered;
-        #Canceled
+        #Canceled;
     };
 
     public type Order = {
         orderId : Nat;
         orderType : OrderType;
-        items : [Menu.MenuItem];
+        items : [Items];
         totalPrice : Float;
         status : OrderStatus;
         tableNumber : Nat;
-        orderTime : Time.Time
+        orderTime : Time.Time;
+        finalized : Bool;
     };
 
-}
+};
