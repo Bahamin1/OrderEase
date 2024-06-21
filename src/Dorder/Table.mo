@@ -21,7 +21,14 @@ module {
         reserveTime : ?Time.Time;
         userWantsToJoin : [Principal];
         seatedCustomers : [Principal];
-        order : ?Cart.Order;
+        status : TableStatus;
+        order : [Cart.CartItem];
+    };
+
+    public type TableStatus = {
+        #Open;
+        #OnOrder;
+        #Finalized;
     };
 
     public type TableMap = Map.Map<Nat, Table>;
@@ -45,9 +52,10 @@ module {
             capacity = capacity;
             reservedBy = null;
             reserveTime = null;
+            status = #Open;
             userWantsToJoin = [];
             seatedCustomers = [];
-            order = null;
+            order = [];
 
         };
 
@@ -72,9 +80,10 @@ module {
                             capacity = table.capacity;
                             reservedBy = ?reservedBy;
                             reserveTime = ?Time.now();
+                            status = #OnOrder;
                             userWantsToJoin = [];
                             seatedCustomers = [];
-                            order = null;
+                            order = [];
                         };
                         put(tables, tableId, updatedTable);
                         return #ok(tables);
@@ -102,9 +111,10 @@ module {
                             capacity = table.capacity;
                             reservedBy = null;
                             reserveTime = null;
+                            status = #Open;
                             userWantsToJoin = [];
                             seatedCustomers = [];
-                            order = null;
+                            order = [];
 
                         };
                         put(tables, tableId, updatedTable);

@@ -437,8 +437,38 @@ shared ({ caller = manager }) actor class Dorder() = this {
       createdAt = Time.now();
     };
     Map.set(cartMap, phash, caller, newOrder);
-    return newOrder;
+    return #ok(newOrder);
 
+  };
+
+  public shared ({ caller }) func addOrderToTable(items : [Menu.MenuItem], tableId : Nat) : async Result.Result<Text, Text> {
+    switch (Table.get(tableMap, tableId)) {
+      case (?table) {
+        if (table.status == #Finalized) {
+          return #err("Cannot add order. The table has finalized orders.");
+        };
+
+        let newOrder = {
+          id = Time.now();
+          items = items;
+          totalPrice = items.foldLeft<Nat>(0, func(acc, item) { acc + item.price });
+          tableId = ?tableId;
+          orderType = #OnTable;
+          orderStatus = #Pending;
+          orderedBy = caller;
+          orderedAt = Time.now();
+          finalized = false;
+        };
+
+        table.orders.add(newOrder);
+        Table.put(tableMap, tableId, table);
+
+        return #ok("Order added to table successfully.");
+      };
+      case (null) {
+        return #err("Table not found.");
+      };
+    };
   };
 };
 
