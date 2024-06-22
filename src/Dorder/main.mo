@@ -159,7 +159,7 @@ shared ({ caller = manager }) actor class Dorder() = this {
 
   public shared ({ caller }) func unreserveTable(tableId : Nat) : async Result.Result<Text, Text> {
     if (Table.canUnreserveTable(employeeMap, tableMap, caller, tableId) != true) {
-      return #err("can't unreserve table becuse caller didn't reserve any table !");
+      return #err("can't unreserve table becuse caller didn't reserve any table or have finalized order ,must pay first!");
     };
 
     switch (Table.unreserve(tableMap, tableId)) {
@@ -426,32 +426,53 @@ shared ({ caller = manager }) actor class Dorder() = this {
 
   //-----------------------------Cart Functions-------------------------------\\
 
-  stable let cartMap = Map.new<Principal, Cart.CartItem>();
+  stable let cartMap = Map.new<Nat, Cart.Order>();
 
-  public shared ({ caller }) func openOrder(orderType : Cart.OrderType) : async Result.Result<Cart.CartItem, Text> {
+  public shared ({ caller }) func openOrder(orderType : Cart.OrderType, tableId : ?Nat) : async Result.Result<Text, Text> {
+    if (orderType == #TakeOut) {
 
-    let newOrder : Cart.CartItem = {
-      items = [];
-      status = #Pending;
-      orderType = orderType;
-      createdAt = Time.now();
+      let newOrder : Cart.Order = {
+        orderedBy = caller;
+        orderType = #TakeOut;
+        items = [];
+        totalPrice = 0;
+        status = #Pending;
+        tableNumber = 0;
+        orderTime = Time.now();
+        isPaid = false;
+      };
+      Map.set(cartMap, nhash, Map.size(cartMap) +1, newOrder);
+      return #ok("Order placed successfully.");
+    } else if (orderType == #OnTable) {
+      switch (tableId) {
+        case (null) { return #err("please put ur table id") };
+        case (?id) {
+          switch (Table.reserve(tableMap, id, caller)) {
+            case (#ok(msg)) {
+              return #ok("Table reserved successfully.");
+            };
+            case (#err(errmsg)) (return #err(errmsg));
+          };
+        };
+      };
     };
-    Map.set(cartMap, phash, caller, newOrder);
-    return #ok(newOrder);
-
+    return #err("you cant fak shit.");
   };
 
   public shared ({ caller }) func addOrderToTable(items : [Menu.MenuItem], tableId : Nat) : async Result.Result<Text, Text> {
+
     switch (Table.get(tableMap, tableId)) {
+
       case (?table) {
+        if (Table.canAddMenuToTable(table, tableId, caller) != true) {
+          return #err("You are not allowed to add order for this table.");
+        };
         if (table.status == #Finalized) {
           return #err("Cannot add order. The table has finalized orders.");
         };
 
         let newOrder = {
-          id = Time.now();
           items = items;
-          totalPrice = items.foldLeft<Nat>(0, func(acc, item) { acc + item.price });
           tableId = ?tableId;
           orderType = #OnTable;
           orderStatus = #Pending;
@@ -460,7 +481,6 @@ shared ({ caller = manager }) actor class Dorder() = this {
           finalized = false;
         };
 
-        table.orders.add(newOrder);
         Table.put(tableMap, tableId, table);
 
         return #ok("Order added to table successfully.");

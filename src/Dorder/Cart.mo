@@ -10,7 +10,7 @@ import Review "Review";
 
 module Cart {
 
-    public type CartMap = Map.Map<Principal, CartItem>;
+    public type CartMap = Map.Map<Nat, Order>;
 
     public type OrderType = {
         #OnTable;
@@ -22,13 +22,6 @@ module Cart {
         quantity : Nat;
     };
 
-    public type CartItem = {
-        items : [Items];
-        status : OrderStatus;
-        orderType : OrderType;
-        createdAt : Time.Time;
-    };
-
     public type OrderStatus = {
         #Pending;
         #Preparing;
@@ -37,14 +30,30 @@ module Cart {
     };
 
     public type Order = {
-        orderId : Nat;
+        orderedBy : Principal;
         orderType : OrderType;
         items : [Items];
         totalPrice : Float;
         status : OrderStatus;
         tableNumber : Nat;
         orderTime : Time.Time;
-        finalized : Bool;
+        isPaid : Bool;
+    };
+
+    public func openOrder(cartMap : CartMap, p : Principal, tableId : Nat, orderType : Cart.OrderType) : () {
+        let key = Map.size(cartMap) + 1;
+
+        let newOrder : Cart.Order = {
+            orderedBy = p;
+            orderType = orderType;
+            items = [];
+            totalPrice = 0;
+            status = #Pending;
+            tableNumber = tableId;
+            orderTime = Time.now();
+            isPaid = false;
+        };
+        Map.set(cartMap, nhash, key, newOrder);
     };
 
 };

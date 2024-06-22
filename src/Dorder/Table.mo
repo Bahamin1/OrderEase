@@ -22,12 +22,11 @@ module {
         userWantsToJoin : [Principal];
         seatedCustomers : [Principal];
         status : TableStatus;
-        order : [Cart.CartItem];
+        order : ?Cart.Order;
     };
 
     public type TableStatus = {
         #Open;
-        #OnOrder;
         #Finalized;
     };
 
@@ -55,7 +54,7 @@ module {
             status = #Open;
             userWantsToJoin = [];
             seatedCustomers = [];
-            order = [];
+            order = null;
 
         };
 
@@ -75,15 +74,25 @@ module {
                         return #err("Table already reserved.");
                     };
                     case (null) {
+                        let newOrder : Cart.Order = {
+                            orderedBy = reservedBy;
+                            orderType = #OnTable;
+                            items = [];
+                            totalPrice = 0;
+                            status = #Pending;
+                            tableNumber = tableId;
+                            orderTime = Time.now();
+                            isPaid = false;
+                        };
                         let updatedTable : Table = {
                             id = table.id;
                             capacity = table.capacity;
                             reservedBy = ?reservedBy;
                             reserveTime = ?Time.now();
-                            status = #OnOrder;
+                            status = #Open;
                             userWantsToJoin = [];
                             seatedCustomers = [];
-                            order = [];
+                            order = ?newOrder;
                         };
                         put(tables, tableId, updatedTable);
                         return #ok(tables);
@@ -114,7 +123,7 @@ module {
                             status = #Open;
                             userWantsToJoin = [];
                             seatedCustomers = [];
-                            order = [];
+                            order = null;
 
                         };
                         put(tables, tableId, updatedTable);
@@ -179,6 +188,8 @@ module {
                 return true;
             };
             case (false) {
+
+                // Check if the table is reserved by the specified principal.
                 if (isReserved(tables, tableId)) {
                     switch (get(tables, tableId)) {
                         case (null) { return false };
@@ -187,6 +198,21 @@ module {
                                 case (null) { return false };
                                 case (?reservedBy) {
                                     if (reservedBy == p) {
+                                        switch (table.order) {
+                                            case (?order) {
+                                                if (order.status == #Preparing) {
+                                                    return false;
+                                                } else if (order.status == #Delivered) {
+                                                    return false;
+                                                } else {
+                                                    return true;
+                                                };
+                                            };
+                                            case (null) {
+                                                return true;
+                                            };
+
+                                        };
                                         return true;
                                     } else {
                                         return false;
@@ -215,6 +241,7 @@ module {
                     reservedBy = table.reservedBy;
                     reserveTime = table.reserveTime;
                     userWantsToJoin = addrequest;
+                    status = table.status;
                     seatedCustomers = table.seatedCustomers;
                     order = table.order;
                 };
@@ -247,6 +274,7 @@ module {
                     reservedBy = table.reservedBy;
                     reserveTime = table.reserveTime;
                     userWantsToJoin = removedPrincipal;
+                    status = table.status;
                     seatedCustomers = newSeated;
                     order = table.order;
                 };
@@ -273,6 +301,27 @@ module {
             };
         };
 
+    };
+
+    public func canAddMenuToTable(table : Table, tableId : Nat, p : Principal) : Bool {
+        switch (table) {
+            case (t) {
+                if (t.reservedBy == p) {
+                    return true;
+                };
+                switch (t.seatedCustomers) {
+
+                    case (seated) {
+                        for (element in seated.vals()) {
+                            if (p == element) { return true };
+                        };
+                    };
+                };
+
+                return false;
+            };
+        };
+        return false;
     };
 
 };
