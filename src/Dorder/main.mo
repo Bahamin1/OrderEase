@@ -428,21 +428,40 @@ shared ({ caller = manager }) actor class Dorder() = this {
 
   stable let cartMap = Map.new<Nat, Cart.Order>();
 
-  public shared ({ caller }) func openOrder(orderType : Cart.OrderType, tableId : ?Nat) : async Result.Result<Text, Text> {
+  public shared ({ caller }) func openOrder(orderType : Cart.OrderType, address : ?Text, tableId : ?Nat) : async Result.Result<Text, Text> {
     if (orderType == #TakeOut) {
+      switch (address) {
+        case (null) { return #err("Please Fill Address !") };
+        case (address) {
+          switch (User.get(userMap, caller)) {
+            case (null) { return #err("login first") };
+            case (?user) {
+              let newOrderUser : [Cart.Cart] = [];
+              func updateOrder(u : User.User, o : [Cart.Cart]) : User.User {
+                return { u with order = o };
+              };
 
-      let newOrder : Cart.Order = {
-        orderedBy = caller;
-        orderType = #TakeOut;
-        items = [];
-        totalPrice = 0;
-        status = #Pending;
-        tableNumber = 0;
-        orderTime = Time.now();
-        isPaid = false;
+              let newstatusOrder = updateOrder(user, newOrderUser);
+
+              User.put(userMap, caller, newstatusOrder);
+            };
+          };
+
+          let newOrder : Cart.Order = {
+            orderId = Map.size(cartMap) +1;
+            orderedBy = caller;
+            orderType = #TakeOut;
+            items = [];
+            totalPrice = 0;
+            status = #Pending;
+            tableNumber = 0;
+            orderTime = Time.now();
+            isPaid = false;
+          };
+          Map.set(cartMap, nhash, newOrder.orderId, newOrder);
+          return #ok("Order placed successfully.");
+        };
       };
-      Map.set(cartMap, nhash, Map.size(cartMap) +1, newOrder);
-      return #ok("Order placed successfully.");
     } else if (orderType == #OnTable) {
       switch (tableId) {
         case (null) { return #err("please put ur table id") };
@@ -456,37 +475,45 @@ shared ({ caller = manager }) actor class Dorder() = this {
         };
       };
     };
-    return #err("you cant fak shit.");
+    return #err("Cant Open Order.");
   };
 
-  public shared ({ caller }) func addOrderToTable(items : [Menu.MenuItem], tableId : Nat) : async Result.Result<Text, Text> {
-
-    switch (Table.get(tableMap, tableId)) {
-
-      case (?table) {
-        if (Table.canAddMenuToTable(table, tableId, caller) != true) {
-          return #err("You are not allowed to add order for this table.");
-        };
-        if (table.status == #Finalized) {
-          return #err("Cannot add order. The table has finalized orders.");
-        };
-
-        let newOrder = {
-          items = items;
-          tableId = ?tableId;
-          orderType = #OnTable;
-          orderStatus = #Pending;
-          orderedBy = caller;
-          orderedAt = Time.now();
-          finalized = false;
-        };
-
-        Table.put(tableMap, tableId, table);
-
-        return #ok("Order added to table successfully.");
-      };
+  public shared ({ caller }) func addOrder(items : [Cart.Cart], tableId : ?Nat) : async Result.Result<Text, Text> {
+    switch (tableId) {
       case (null) {
-        return #err("Table not found.");
+        Cart.addToUserCart(userMap, caller, items);
+        return #ok("menu added To user Order");
+      };
+      case (table) {
+
+        switch (Table.get(tableMap, tableId)) {
+
+          case (?table) {
+            if (Table.canAddMenuToTable(table, tableId, caller) != true) {
+              return #err("You are not allowed to add order for this table.");
+            };
+            if (table.status == #Finalized) {
+              return #err("Cannot add order. The table has finalized orders.");
+            };
+
+            let newOrder = {
+              items = items;
+              tableId = ?tableId;
+              orderType = #OnTable;
+              orderStatus = #Pending;
+              orderedBy = caller;
+              orderedAt = Time.now();
+              finalized = false;
+            };
+
+            Table.put(tableMap, tableId, table);
+
+            return #ok("Order added to table successfully.");
+          };
+          case (null) {
+            return #err("Table not found.");
+          };
+        };
       };
     };
   };

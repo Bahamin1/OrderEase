@@ -1,4 +1,5 @@
 import Array "mo:base/Array";
+import Buffer "mo:base/Buffer";
 import HashMap "mo:base/HashMap";
 import Principal "mo:base/Principal";
 import Result "mo:base/Result";
@@ -34,6 +35,7 @@ module {
     };
 
     public type User = {
+        //must added address for user
         id : Nat;
         name : Text;
         number : Nat;
@@ -43,7 +45,7 @@ module {
         reviewPoint : Nat;
         buyingScore : Nat;
         image : ?Blob;
-        order : ?Cart.Order;
+        order : [Cart.Cart];
     };
 
     public type Employee = {
@@ -87,7 +89,7 @@ module {
                     image = image;
                     reviewPoint = 0;
                     buyingScore = 0;
-                    order = null;
+                    order = [];
                 };
 
                 put(userMap, principal, user);
@@ -248,4 +250,5 @@ module {
             case null { return false };
         };
     };
+
 };

@@ -74,16 +74,7 @@ module {
                         return #err("Table already reserved.");
                     };
                     case (null) {
-                        let newOrder : Cart.Order = {
-                            orderedBy = reservedBy;
-                            orderType = #OnTable;
-                            items = [];
-                            totalPrice = 0;
-                            status = #Pending;
-                            tableNumber = tableId;
-                            orderTime = Time.now();
-                            isPaid = false;
-                        };
+
                         let updatedTable : Table = {
                             id = table.id;
                             capacity = table.capacity;
@@ -92,7 +83,7 @@ module {
                             status = #Open;
                             userWantsToJoin = [];
                             seatedCustomers = [];
-                            order = ?newOrder;
+                            order = null;
                         };
                         put(tables, tableId, updatedTable);
                         return #ok(tables);
@@ -233,14 +224,17 @@ module {
         switch (get(tableMap, tableId)) {
             case (?table) {
 
-                let addrequest = Array.append<Principal>(table.userWantsToJoin, [p]);
+                let request = Buffer.fromArray<Principal>(table.userWantsToJoin);
+                request.add(p);
+
+                // let addrequest = Array.append<Principal>(table.userWantsToJoin, [p]);
 
                 let updatedTable : Table = {
                     id = tableId;
                     capacity = table.capacity;
                     reservedBy = table.reservedBy;
                     reserveTime = table.reserveTime;
-                    userWantsToJoin = addrequest;
+                    userWantsToJoin = Buffer.toArray(request);
                     status = table.status;
                     seatedCustomers = table.seatedCustomers;
                     order = table.order;
@@ -266,7 +260,9 @@ module {
                         x != p;
                     },
                 );
-                let newSeated = Array.append<Principal>(table.seatedCustomers, [p]);
+                let newSeat = Buffer.fromArray<Principal>(table.seatedCustomers);
+                newSeat.add(p);
+                // let newSeated = Array.append<Principal>(table.seatedCustomers, [p]);
 
                 let updatedSeatedCustomers : Table = {
                     id = tableId;
@@ -275,7 +271,7 @@ module {
                     reserveTime = table.reserveTime;
                     userWantsToJoin = removedPrincipal;
                     status = table.status;
-                    seatedCustomers = newSeated;
+                    seatedCustomers = Buffer.toArray(newSeat);
                     order = table.order;
                 };
                 put(tableMap, tableId, updatedSeatedCustomers);
@@ -304,13 +300,12 @@ module {
     };
 
     public func canAddMenuToTable(table : Table, tableId : Nat, p : Principal) : Bool {
-        switch (table) {
-            case (t) {
-                if (t.reservedBy == p) {
+        switch (table.reservedBy) {
+            case (reservedBy) {
+                if (reservedBy == p) {
                     return true;
                 };
-                switch (t.seatedCustomers) {
-
+                switch (table.seatedCustomers) {
                     case (seated) {
                         for (element in seated.vals()) {
                             if (p == element) { return true };
