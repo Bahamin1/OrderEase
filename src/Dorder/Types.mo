@@ -9,4 +9,9 @@ import Menu "Menu";
 
 module {
 
+    public type CartItem = {
+        item : Menu.MenuItem;
+        quantity : Nat;
+        createdTime : Time.Time;
+    };
 };

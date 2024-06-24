@@ -6,8 +6,8 @@ import Result "mo:base/Result";
 import Map "mo:map/Map";
 import { phash } "mo:map/Map";
 
-import Cart "Cart";
 import Review "Review";
+import Types "Types";
 
 // Define the enum for different operations
 module {
@@ -45,7 +45,7 @@ module {
         reviewPoint : Nat;
         buyingScore : Nat;
         image : ?Blob;
-        order : [Cart.Cart];
+        order : [Types.CartItem];
     };
 
     public type Employee = {

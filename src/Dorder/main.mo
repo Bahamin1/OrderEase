@@ -15,6 +15,7 @@ import Menu "Menu";
 import Review "Review";
 import Table "Table";
 import Type "Types";
+import Types "Types";
 import User "User";
 
 shared ({ caller = manager }) actor class Dorder() = this {
@@ -52,7 +53,7 @@ shared ({ caller = manager }) actor class Dorder() = this {
     ];
 
     User.new(userMap, caller, name, email, #Customer, number, image, allowedOperations);
-
+    //////// must be return
     if (User.get(userMap, caller) == null) {
       Log.add(logMap, #Member, "Member " # Principal.toText(caller) # " has been Added SuccessFully!");
     } else {
@@ -428,49 +429,42 @@ shared ({ caller = manager }) actor class Dorder() = this {
 
   stable let cartMap = Map.new<Nat, Cart.Order>();
 
-  public shared ({ caller }) func openOrder(orderType : Cart.OrderType, address : ?Text, tableId : ?Nat) : async Result.Result<Text, Text> {
-    if (orderType == #TakeOut) {
-      switch (address) {
-        case (null) { return #err("Please Fill Address !") };
-        case (address) {
-          switch (User.get(userMap, caller)) {
-            case (null) { return #err("login first") };
-            case (?user) {
-              let newOrderUser : [Cart.Cart] = [];
-              func updateOrder(u : User.User, o : [Cart.Cart]) : User.User {
-                return { u with order = o };
-              };
-
-              let newstatusOrder = updateOrder(user, newOrderUser);
-
-              User.put(userMap, caller, newstatusOrder);
-            };
-          };
-
-          let newOrder : Cart.Order = {
-            orderId = Map.size(cartMap) +1;
-            orderedBy = caller;
-            orderType = #TakeOut;
-            items = [];
-            totalPrice = 0;
-            status = #Pending;
-            tableNumber = 0;
-            orderTime = Time.now();
-            isPaid = false;
-          };
-          Map.set(cartMap, nhash, newOrder.orderId, newOrder);
-          return #ok("Order placed successfully.");
-        };
-      };
-    } else if (orderType == #OnTable) {
+  public shared ({ caller }) func openOrder(orderType : Cart.OrderType, address : ?Text, phoneNumber : ?Nat, tableId : ?Nat) : async Result.Result<Nat, Text> {
+    if (orderType == #OnTable) {
       switch (tableId) {
         case (null) { return #err("please put ur table id") };
         case (?id) {
           switch (Table.reserve(tableMap, id, caller)) {
             case (#ok(msg)) {
-              return #ok("Table reserved successfully.");
+              return #ok(id);
             };
             case (#err(errmsg)) (return #err(errmsg));
+          };
+        };
+      };
+    };
+    switch (address) {
+      case (null) { return #err("Please Fill Address !") };
+      case (address) {
+        switch (phoneNumber) {
+          case (null) { return #err("Please Fill Phone Number !") };
+          case (number) {
+
+            let newOrder : Cart.Order = {
+              orderId = Map.size(cartMap) +1;
+              orderedBy = caller;
+              orderType = #TakeOut;
+              address = address;
+              phoneNumber = phoneNumber;
+              items = [];
+              totalPrice = 0;
+              status = #Pending;
+              tableNumber = 0;
+              orderTime = Time.now();
+              isPaid = false;
+            };
+            Map.set(cartMap, nhash, newOrder.orderId, newOrder);
+            return #ok(newOrder.orderId);
           };
         };
       };
@@ -478,13 +472,13 @@ shared ({ caller = manager }) actor class Dorder() = this {
     return #err("Cant Open Order.");
   };
 
-  public shared ({ caller }) func addOrder(items : [Cart.Cart], tableId : ?Nat) : async Result.Result<Text, Text> {
+  public shared ({ caller }) func addOrder(items : [Types.CartItem], tableId : ?Nat, cartId : ?Nat) : async Result.Result<Text, Text> {
     switch (tableId) {
       case (null) {
         Cart.addToUserCart(userMap, caller, items);
         return #ok("menu added To user Order");
       };
-      case (table) {
+      case (?tableId) {
 
         switch (Table.get(tableMap, tableId)) {
 
@@ -493,17 +487,33 @@ shared ({ caller = manager }) actor class Dorder() = this {
               return #err("You are not allowed to add order for this table.");
             };
             if (table.status == #Finalized) {
-              return #err("Cannot add order. The table has finalized orders.");
+              return #err("Cannot add order. The table has finalized orders. reserver must open it first");
             };
 
-            let newOrder = {
-              items = items;
-              tableId = ?tableId;
-              orderType = #OnTable;
-              orderStatus = #Pending;
+            let newOrder : Cart.Order = {
+              orderId = Map.size(cartMap) +1;
               orderedBy = caller;
-              orderedAt = Time.now();
-              finalized = false;
+              orderType = #OnTable;
+              address = null;
+              phoneNumber = null;
+              items = items;
+              totalPrice = 0.0;
+              status = #Pending;
+              tableNumber = tableId;
+              orderTime = Time.now();
+              isPaid = false;
+            };
+
+            let updatedtable = {
+              id = tableId;
+              capacity = table.capacity;
+              reservedBy = table.reservedBy;
+              reserveTime = table.reserveTime;
+              status = #Open;
+              userWantsToJoin = table.userWantsToJoin;
+              seatedCustomers = table.seatedCustomers;
+              order = newOrder;
+
             };
 
             Table.put(tableMap, tableId, table);
@@ -516,17 +526,17 @@ shared ({ caller = manager }) actor class Dorder() = this {
         };
       };
     };
+
   };
+
+  // public shared ({ caller }) func addToCart(menuId : Nat, quantity : Nat) : async Result.Result<Cart.CartMap, Text> {
+
+  //   if (Menu.isAvailable(menuMap, menuId) != true) {
+  //     return #err("this item is not Available ");
+  //   };
+
+  // };
 };
-
-//   public shared ({ caller }) func addToCart(menuId : Nat, quantity : Nat) : async Result.Result<Cart.CartMap, Text> {
-
-//     if (Menu.isAvailable(menuMap, menuId) != true) {
-//       return #err("this item is not Available ");
-//     };
-
-//   };
-// };
 
 // //member
 // //systeme ray giri baraye ezafe kardan va hazf kardane menu va khadamat

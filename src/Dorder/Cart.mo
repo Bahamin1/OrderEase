@@ -9,6 +9,7 @@ import { nhash; phash } "mo:map/Map";
 
 import Menu "Menu";
 import Review "Review";
+import Types "Types";
 import User "User";
 
 module Cart {
@@ -16,6 +17,7 @@ module Cart {
     public type OrderType = {
         #OnTable;
         #TakeOut;
+        #Delivery;
     };
 
     public type Cart = {
@@ -35,6 +37,8 @@ module Cart {
         orderId : Nat;
         orderedBy : Principal;
         orderType : OrderType;
+        address : ?Text;
+        phoneNumber : ?Nat;
         items : [Cart];
         totalPrice : Float;
         status : OrderStatus;
@@ -60,6 +64,8 @@ module Cart {
             orderId = id;
             orderedBy = p;
             orderType = orderType;
+            address = null;
+            phoneNumber = null;
             items = [];
             totalPrice = 0;
             status = #Pending;
@@ -71,13 +77,13 @@ module Cart {
     };
 
     public func addToUserCart(userMap : User.UserMap, p : Principal, items : [Cart.Cart]) : () {
-        let newOrder = Buffer.fromArray<Cart.Cart>(items);
+        let newOrder = Buffer.fromArray<Types.CartItem>(items);
 
         switch (User.get(userMap, p)) {
             case (null) {
                 return;
             };
-            case (user) {
+            case (?user) {
                 let updateUserOrder : User.User = {
                     id = user.id;
                     name = user.name;
