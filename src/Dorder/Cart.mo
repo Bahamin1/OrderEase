@@ -76,29 +76,4 @@ module Cart {
         put(cartMap, id, newOrder);
     };
 
-    public func addToUserCart(userMap : User.UserMap, p : Principal, items : [Cart.Cart]) : () {
-        let newOrder = Buffer.fromArray<Types.CartItem>(items);
-
-        switch (User.get(userMap, p)) {
-            case (null) {
-                return;
-            };
-            case (?user) {
-                let updateUserOrder : User.User = {
-                    id = user.id;
-                    name = user.name;
-                    email = user.email;
-                    number = user.number;
-                    allowedOperations = user.allowedOperations;
-                    role = user.role;
-                    image = user.image;
-                    reviewPoint = user.reviewPoint;
-                    buyingScore = user.buyingScore;
-                    order = Buffer.toArray(newOrder);
-                };
-            };
-        };
-        return;
-    };
-
 };

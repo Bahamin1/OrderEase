@@ -475,8 +475,32 @@ shared ({ caller = manager }) actor class Dorder() = this {
   public shared ({ caller }) func addOrder(items : [Types.CartItem], tableId : ?Nat, cartId : ?Nat) : async Result.Result<Text, Text> {
     switch (tableId) {
       case (null) {
-        Cart.addToUserCart(userMap, caller, items);
-        return #ok("menu added To user Order");
+        switch (cartId) {
+          case (null) { return #err("Please Fill Table Id !") };
+          case (?cart) {
+            switch (Cart.get(cartMap, cart)) {
+              case (null) { return #err("Please Fill Cart Id !") };
+              case (?cart) {
+                let itemsAdd = Buffer.fromArray<Types.CartItem>(items);
+                let updateOrder : Cart.Order = {
+                  orderId = cart.orderId;
+                  orderedBy = caller;
+                  orderType = cart.orderType;
+                  address = cart.address;
+                  phoneNumber = cart.phoneNumber;
+                  items = Buffer.toArray(itemsAdd);
+                  totalPrice = 0.0;
+                  status = #Pending;
+                  tableNumber = cart.tableNumber;
+                  orderTime = Time.now();
+                  isPaid = false;
+                };
+                return #ok("items successfully added to order");
+              };
+            };
+          };
+        };
+
       };
       case (?tableId) {
 
@@ -526,17 +550,16 @@ shared ({ caller = manager }) actor class Dorder() = this {
         };
       };
     };
-
   };
-
-  // public shared ({ caller }) func addToCart(menuId : Nat, quantity : Nat) : async Result.Result<Cart.CartMap, Text> {
-
-  //   if (Menu.isAvailable(menuMap, menuId) != true) {
-  //     return #err("this item is not Available ");
-  //   };
-
-  // };
 };
+
+// public shared ({ caller }) func addToCart(menuId : Nat, quantity : Nat) : async Result.Result<Cart.CartMap, Text> {
+
+//   if (Menu.isAvailable(menuMap, menuId) != true) {
+//     return #err("this item is not Available ");
+//   };
+
+// };
 
 // //member
 // //systeme ray giri baraye ezafe kardan va hazf kardane menu va khadamat
