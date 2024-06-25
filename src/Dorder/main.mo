@@ -429,128 +429,45 @@ shared ({ caller = manager }) actor class Dorder() = this {
 
   stable let cartMap = Map.new<Nat, Cart.Order>();
 
-  public shared ({ caller }) func openOrder(orderType : Cart.OrderType, address : ?Text, phoneNumber : ?Nat, tableId : ?Nat) : async Result.Result<Nat, Text> {
-    if (orderType == #OnTable) {
-      switch (tableId) {
-        case (null) { return #err("please put ur table id") };
-        case (?id) {
-          switch (Table.reserve(tableMap, id, caller)) {
-            case (#ok(msg)) {
-              return #ok(id);
-            };
-            case (#err(errmsg)) (return #err(errmsg));
-          };
-        };
-      };
-    };
-    switch (address) {
-      case (null) { return #err("Please Fill Address !") };
-      case (address) {
-        switch (phoneNumber) {
-          case (null) { return #err("Please Fill Phone Number !") };
-          case (number) {
-
-            let newOrder : Cart.Order = {
-              orderId = Map.size(cartMap) +1;
-              orderedBy = caller;
-              orderType = #TakeOut;
-              address = address;
-              phoneNumber = phoneNumber;
-              items = [];
-              totalPrice = 0;
-              status = #Pending;
-              tableNumber = 0;
-              orderTime = Time.now();
-              isPaid = false;
-            };
-            Map.set(cartMap, nhash, newOrder.orderId, newOrder);
-            return #ok(newOrder.orderId);
-          };
-        };
-      };
-    };
-    return #err("Cant Open Order.");
-  };
-
-  public shared ({ caller }) func addOrder(items : [Types.CartItem], tableId : ?Nat, cartId : ?Nat) : async Result.Result<Text, Text> {
-    switch (tableId) {
+  public shared ({ caller }) func editOrOpenOrder(orderId : ?Nat, orderType : Cart.OrderType, items : [Cart.CartItem]) : async Result.Result<Cart.Order, Text> {
+    switch (orderId) {
       case (null) {
-        switch (cartId) {
-          case (null) { return #err("Please Fill Table Id !") };
+        let newOrder = Cart.new(cartMap, caller, orderType, items);
+        return #ok(newOrder);
+      };
+      case (?id) {
+        switch (Cart.get(cartMap, id)) {
+          case (null) {
+            return #err("Cart Dosent exist !");
+          };
           case (?cart) {
-            switch (Cart.get(cartMap, cart)) {
-              case (null) { return #err("Please Fill Cart Id !") };
-              case (?cart) {
-                let itemsAdd = Buffer.fromArray<Types.CartItem>(items);
+            if (Cart.hasOrder(cart, caller) == true) {
+              if ((cart.status == #Pending)) {
+
                 let updateOrder : Cart.Order = {
-                  orderId = cart.orderId;
-                  orderedBy = caller;
-                  orderType = cart.orderType;
-                  address = cart.address;
-                  phoneNumber = cart.phoneNumber;
-                  items = Buffer.toArray(itemsAdd);
-                  totalPrice = 0.0;
+                  id = cart.id;
+                  items = items;
                   status = #Pending;
-                  tableNumber = cart.tableNumber;
-                  orderTime = Time.now();
+                  orderBy = cart.orderBy;
+                  orderType = orderType;
+                  createdAt = Time.now();
                   isPaid = false;
                 };
-                return #ok("items successfully added to order");
+                Cart.put(cartMap, cart.id, updateOrder);
+                return #ok(updateOrder);
+
+              } else {
+                return #err("this Order is delivered you cant change that ! open another order");
               };
             };
           };
         };
+        return #err("!");
 
-      };
-      case (?tableId) {
-
-        switch (Table.get(tableMap, tableId)) {
-
-          case (?table) {
-            if (Table.canAddMenuToTable(table, tableId, caller) != true) {
-              return #err("You are not allowed to add order for this table.");
-            };
-            if (table.status == #Finalized) {
-              return #err("Cannot add order. The table has finalized orders. reserver must open it first");
-            };
-
-            let newOrder : Cart.Order = {
-              orderId = Map.size(cartMap) +1;
-              orderedBy = caller;
-              orderType = #OnTable;
-              address = null;
-              phoneNumber = null;
-              items = items;
-              totalPrice = 0.0;
-              status = #Pending;
-              tableNumber = tableId;
-              orderTime = Time.now();
-              isPaid = false;
-            };
-
-            let updatedtable = {
-              id = tableId;
-              capacity = table.capacity;
-              reservedBy = table.reservedBy;
-              reserveTime = table.reserveTime;
-              status = #Open;
-              userWantsToJoin = table.userWantsToJoin;
-              seatedCustomers = table.seatedCustomers;
-              order = newOrder;
-
-            };
-
-            Table.put(tableMap, tableId, table);
-
-            return #ok("Order added to table successfully.");
-          };
-          case (null) {
-            return #err("Table not found.");
-          };
-        };
       };
     };
   };
+
 };
 
 // public shared ({ caller }) func addToCart(menuId : Nat, quantity : Nat) : async Result.Result<Cart.CartMap, Text> {

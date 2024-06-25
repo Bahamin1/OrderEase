@@ -14,16 +14,29 @@ import User "User";
 
 module Cart {
 
-    public type OrderType = {
-        #OnTable;
-        #TakeOut;
-        #Delivery;
-    };
-
-    public type Cart = {
+    public type CartItem = {
         item : Menu.MenuItem;
         quantity : Nat;
-        createdTime : Time.Time;
+        createdAt : Time.Time;
+    };
+
+    public type OrderType = {
+        onTable : OnTable;
+        delivery : Delivery;
+        takeOut : TakeOut;
+    };
+
+    public type OnTable = {
+        tableId : Nat;
+    };
+
+    public type Delivery = {
+        address : Text;
+        phoneNumber : Nat;
+    };
+
+    public type TakeOut = {
+        phoneNumber : Nat;
     };
 
     public type OrderStatus = {
@@ -34,16 +47,12 @@ module Cart {
     };
 
     public type Order = {
-        orderId : Nat;
-        orderedBy : Principal;
-        orderType : OrderType;
-        address : ?Text;
-        phoneNumber : ?Nat;
-        items : [Cart];
-        totalPrice : Float;
+        id : Nat;
+        items : [CartItem];
         status : OrderStatus;
-        tableNumber : Nat;
-        orderTime : Time.Time;
+        orderBy : Principal;
+        orderType : OrderType;
+        createdAt : Time.Time;
         isPaid : Bool;
     };
 
@@ -57,23 +66,37 @@ module Cart {
         return Map.set<Nat, Order>(carts, nhash, key, value);
     };
 
-    public func new(cartMap : CartMap, p : Principal, tableId : Nat, orderType : Cart.OrderType) : () {
+    public func new(cartMap : CartMap, p : Principal, orderType : Cart.OrderType, items : [CartItem]) : Order {
         let id = Map.size(cartMap) + 1;
 
         let newOrder : Cart.Order = {
-            orderId = id;
-            orderedBy = p;
-            orderType = orderType;
-            address = null;
-            phoneNumber = null;
-            items = [];
-            totalPrice = 0;
+            id = id;
+            items = items;
             status = #Pending;
-            tableNumber = tableId;
-            orderTime = Time.now();
+            orderBy = p;
+            orderType = orderType;
+            createdAt = Time.now();
             isPaid = false;
         };
         put(cartMap, id, newOrder);
+
+        return newOrder;
+    };
+
+    public func hasOrder(order : Order, p : Principal) : Bool {
+
+        switch (order) {
+            case (order) {
+
+                if (order.orderBy == p) {
+                    return true;
+                } else {
+                    return false;
+                };
+            };
+
+        };
+
     };
 
 };
