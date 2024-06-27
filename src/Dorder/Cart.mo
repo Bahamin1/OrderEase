@@ -14,12 +14,6 @@ import User "User";
 
 module Cart {
 
-    public type CartItem = {
-        item : Menu.MenuItem;
-        quantity : Nat;
-        createdAt : Time.Time;
-    };
-
     public type OrderType = {
         onTable : OnTable;
         delivery : Delivery;
@@ -46,12 +40,25 @@ module Cart {
         #Canceled;
     };
 
+    public type OrderStage = {
+        #Open;
+        #Finalized;
+    };
+
+    public type CartItem = {
+        item : Menu.MenuItem;
+        quantity : Nat;
+        createdAt : Time.Time;
+    };
+
     public type Order = {
         id : Nat;
         items : [CartItem];
         status : OrderStatus;
         orderBy : Principal;
         orderType : OrderType;
+        totalAmount : ?Nat;
+        stage : OrderStage;
         createdAt : Time.Time;
         isPaid : Bool;
     };
@@ -74,6 +81,8 @@ module Cart {
             items = items;
             status = #Pending;
             orderBy = p;
+            totalAmount = null;
+            stage = #Open;
             orderType = orderType;
             createdAt = Time.now();
             isPaid = false;

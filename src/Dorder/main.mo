@@ -448,6 +448,8 @@ shared ({ caller = manager }) actor class Dorder() = this {
                   id = cart.id;
                   items = items;
                   status = #Pending;
+                  stage = #Open;
+                  totalAmount = cart.totalAmount;
                   orderBy = cart.orderBy;
                   orderType = orderType;
                   createdAt = Time.now();
@@ -464,6 +466,82 @@ shared ({ caller = manager }) actor class Dorder() = this {
         };
         return #err("!");
 
+      };
+    };
+  };
+
+  public shared ({ caller }) func finalizeOrder(orderId : Nat) : async Result.Result<Text, Text> {
+
+    switch (Cart.get(cartMap, orderId)) {
+      case (null) {
+        return #err("Order not found");
+      };
+      case (?order) {
+        if (Cart.hasOrder(order, caller) != true) {
+          return #err("this order is not for caller!");
+        };
+        if (order.stage == #Finalized) {
+          return #err("Order is already finalized");
+        };
+
+        for (element in order.items.vals()) {
+          switch (element.item) {
+            case (is) {
+              switch (Menu.get(menuMap, is.id)) {
+                case (null) {
+                  return #err("Item not found");
+                };
+                case (?item) {
+                  if (item.stock != true) {
+                    return #err("Item " #is.name # " is out of stock");
+                  };
+                };
+              };
+
+            };
+
+          };
+        };
+        let total = await totalAmount(orderId);
+
+        let updatedOrder : Cart.Order = {
+          id = order.id;
+          items = order.items;
+          status = order.status;
+          orderBy = order.orderBy;
+          orderType = order.orderType;
+          totalAmount = ?total;
+          stage = #Finalized;
+          createdAt = order.createdAt;
+          isPaid = order.isPaid;
+        };
+        Cart.put(cartMap, orderId, updatedOrder);
+        return #ok("its ok order was fainalized ! ");
+      };
+    };
+  };
+
+  public shared query func totalAmount(orderId : Nat) : async Nat {
+    let order = Cart.get(cartMap, orderId);
+    var totalAmount : Nat = 0;
+    switch (order) {
+      case (null) {
+        return 0;
+      };
+      case (?is) {
+        for (element in is.items.vals()) {
+          switch (element) {
+            case (item) {
+              switch (item.item) {
+                case (menuItem) {
+                  totalAmount += menuItem.price * element.quantity;
+                };
+              };
+
+            };
+          };
+        };
+        return totalAmount;
       };
     };
   };
