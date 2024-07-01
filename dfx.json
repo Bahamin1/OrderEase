@@ -1,7 +1,7 @@
 {
   "canisters": {
     "Dorder_backend": {
-      "main": "src/Dorder/main.mo",
+      "main": "src/OrderEase/main.mo",
       "type": "motoko"
     }
   },

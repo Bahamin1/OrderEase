@@ -1,4 +1,3 @@
-import Array "mo:base/Array";
 import Buffer "mo:base/Buffer";
 import Iter "mo:base/Iter";
 import Nat "mo:base/Nat";
@@ -14,8 +13,6 @@ import Log "Log";
 import Menu "Menu";
 import Review "Review";
 import Table "Table";
-import Type "Types";
-import Types "Types";
 import User "User";
 
 shared ({ caller = manager }) actor class Dorder() = this {
@@ -208,7 +205,7 @@ shared ({ caller = manager }) actor class Dorder() = this {
     };
   };
 
-  public shared ({ caller }) func addGuestTotable(tableId : Nat, p : Principal, yesOrNo : Bool) : async Result.Result<[Principal], Text> {
+  public shared ({ caller }) func addGuestTotable(tableId : Nat, p : Principal) : async Result.Result<[Principal], Text> {
     if (Table.canUnreserveTable(employeeMap, tableMap, caller, tableId) != true) {
       return #err("this member " #Principal.toText(caller) # " didnt Reserve the table " #Nat.toText(tableId) # "!");
     };

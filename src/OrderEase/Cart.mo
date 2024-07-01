@@ -1,16 +1,8 @@
-import Array "mo:base/Array";
-import Buffer "mo:base/Buffer";
-import HashMap "mo:base/HashMap";
-import Principal "mo:base/Principal";
-import Result "mo:base/Result";
 import Time "mo:base/Time";
 import Map "mo:map/Map";
-import { nhash; phash } "mo:map/Map";
+import { nhash } "mo:map/Map";
 
 import Menu "Menu";
-import Review "Review";
-import Types "Types";
-import User "User";
 
 module Cart {
 

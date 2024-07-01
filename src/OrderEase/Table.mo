@@ -1,8 +1,5 @@
 import Array "mo:base/Array";
 import Buffer "mo:base/Buffer";
-import Debug "mo:base/Debug";
-import Nat "mo:base/Nat";
-import Principal "mo:base/Principal";
 import Result "mo:base/Result";
 import Time "mo:base/Time";
 import Map "mo:map/Map";
@@ -302,7 +299,7 @@ module {
     public func canAddMenuToTable(table : Table, tableId : Nat, p : Principal) : Bool {
         switch (table.reservedBy) {
             case (reservedBy) {
-                if (reservedBy == p) {
+                if (reservedBy == ?p) {
                     return true;
                 };
                 switch (table.seatedCustomers) {

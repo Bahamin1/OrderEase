@@ -1,7 +1,7 @@
 import Array "mo:base/Array";
 import Time "mo:base/Time";
 import Map "mo:map/Map";
-import { nhash; phash } "mo:map/Map";
+import { nhash } "mo:map/Map";
 
 module {
 
@@ -44,6 +44,7 @@ module {
     };
 
     public func getLogsByCategory(logMap : LogMap, per : Catagory) : [Log] {
+
         var filteredLogs : [Log] = [];
 
         for (cata in Map.vals(logMap)) {
