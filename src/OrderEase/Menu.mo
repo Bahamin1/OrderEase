@@ -13,7 +13,7 @@ module {
     public type MenuItem = {
         id : Nat;
         name : Text;
-        price : Nat;
+        price : Float;
         stock : Bool;
         description : Text;
         score : [Review.MenuReview];
@@ -22,7 +22,7 @@ module {
 
     public type NewMenuItem = {
         name : Text;
-        price : Nat;
+        price : Float;
         stock : Bool;
         description : Text;
         image : ?Blob;

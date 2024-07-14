@@ -1,8 +1,5 @@
 import Array "mo:base/Array";
-import Buffer "mo:base/Buffer";
-import HashMap "mo:base/HashMap";
 import Principal "mo:base/Principal";
-import Result "mo:base/Result";
 import Map "mo:map/Map";
 import { phash } "mo:map/Map";
 

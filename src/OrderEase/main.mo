@@ -1,3 +1,4 @@
+import Array "mo:base/Array";
 import Buffer "mo:base/Buffer";
 import Iter "mo:base/Iter";
 import Nat "mo:base/Nat";
@@ -205,16 +206,33 @@ shared ({ caller = manager }) actor class Dorder() = this {
     };
   };
 
-  public shared ({ caller }) func addGuestTotable(tableId : Nat, p : Principal) : async Result.Result<[Principal], Text> {
+  public shared ({ caller }) func handleGustRequest(tableId : Nat, p : Principal, canSeat : Bool) : async Result.Result<[Principal], Text> {
     if (Table.canUnreserveTable(employeeMap, tableMap, caller, tableId) != true) {
       return #err("this member " #Principal.toText(caller) # " didnt Reserve the table " #Nat.toText(tableId) # "!");
     };
-    switch (Table.addGustToTable(tableMap, tableId, p)) {
-      case (seatedUsers) {
-        return #ok(seatedUsers);
+
+    if (canSeat == true) {
+
+      return #ok(Table.addGustToTable(tableMap, tableId, p))
+
+    } else {
+      switch (Table.get(tableMap, tableId)) {
+        case (null) {
+          return #err("tableNotFound");
+        };
+        case (?table) {
+          let removedPrincipal = Array.filter<Principal>(
+            table.userWantsToJoin,
+            func(x) {
+              x != p;
+            },
+          );
+          let newUsers = { table with userWantsToJoin = removedPrincipal };
+          Table.put(tableMap, tableId, newUsers);
+          return #ok(removedPrincipal);
+        };
       };
     };
-
   };
 
   //----------------- Menu Functions -----------------//
@@ -426,119 +444,65 @@ shared ({ caller = manager }) actor class Dorder() = this {
 
   stable let cartMap = Map.new<Nat, Cart.Order>();
 
-  public shared ({ caller }) func editOrOpenOrder(orderId : ?Nat, orderType : Cart.OrderType, items : [Cart.CartItem]) : async Result.Result<Cart.Order, Text> {
-    switch (orderId) {
-      case (null) {
-        let newOrder = Cart.new(cartMap, caller, orderType, items);
-        return #ok(newOrder);
-      };
-      case (?id) {
-        switch (Cart.get(cartMap, id)) {
-          case (null) {
-            return #err("Cart Dosent exist !");
-          };
-          case (?cart) {
-            if (Cart.hasOrder(cart, caller) == true) {
-              if ((cart.status == #Pending)) {
-
-                let updateOrder : Cart.Order = {
-                  id = cart.id;
-                  items = items;
-                  status = #Pending;
-                  stage = #Open;
-                  totalAmount = cart.totalAmount;
-                  orderBy = cart.orderBy;
-                  orderType = orderType;
-                  createdAt = Time.now();
-                  isPaid = false;
-                };
-                Cart.put(cartMap, cart.id, updateOrder);
-                return #ok(updateOrder);
-
-              } else {
-                return #err("this Order is delivered you cant change that ! open another order");
-              };
-            };
-          };
+  public shared ({ caller }) func openOrEditCart(orderId : ?Nat, orderType : Cart.OrderType, items : [Cart.CartItem]) : async Result.Result<Nat, Text> {
+    //check caller has Order or not ! if order is open add the order
+    switch (Cart.hasOpenOrder(cartMap, caller)) {
+      case (?order) {
+        let amount = Cart.calculateItemsAmount(menuMap, items);
+        let updateOrder : Cart.Order = {
+          id = order.id;
+          items = items;
+          status = #Pending;
+          orderBy = order.orderBy;
+          totalAmount = ?amount;
+          stage = #Open;
+          orderType = orderType;
+          createdAt = Time.now();
+          isPaid = false;
         };
-        return #err("!");
-
+        Cart.put(cartMap, order.id, updateOrder);
+        return #ok(order.id);
       };
+      case (null) {};
     };
+
+    let newOrder = Cart.new(menuMap, cartMap, caller, orderType, items);
+    return #ok(newOrder);
   };
 
-  public shared ({ caller }) func finalizeOrder(orderId : Nat) : async Result.Result<Text, Text> {
+  public shared ({ caller }) func finalizedCart(orderId : Nat) : async Result.Result<Text, Text> {
 
     switch (Cart.get(cartMap, orderId)) {
       case (null) {
         return #err("Order not found");
       };
-      case (?order) {
-        if (Cart.hasOrder(order, caller) != true) {
-          return #err("this order is not for caller!");
+      case (?cart) {
+        if (cart.orderBy != caller) {
+          return #err("this order is not for this caller!");
         };
-        if (order.stage == #Finalized) {
+        if (cart.stage == #Finalized) {
           return #err("Order is already finalized");
         };
 
-        for (element in order.items.vals()) {
-          switch (element.item) {
-            case (is) {
-              switch (Menu.get(menuMap, is.id)) {
-                case (null) {
-                  return #err("Item not found");
-                };
-                case (?item) {
-                  if (item.stock != true) {
-                    return #err("Item " #is.name # " is out of stock");
-                  };
-                };
+        for (element in cart.items.vals()) {
+          switch (Menu.get(menuMap, element.itemId)) {
+            case (?is) {
+              if (is.stock != true) {
+                return #err("Item " #is.name # " is out of stock");
               };
-
+            };
+            case (null) {
+              return #err("Item not found");
             };
 
           };
-        };
-        let total = await totalAmount(orderId);
 
-        let updatedOrder : Cart.Order = {
-          id = order.id;
-          items = order.items;
-          status = order.status;
-          orderBy = order.orderBy;
-          orderType = order.orderType;
-          totalAmount = ?total;
-          stage = #Finalized;
-          createdAt = order.createdAt;
-          isPaid = order.isPaid;
         };
-        Cart.put(cartMap, orderId, updatedOrder);
-        return #ok("its ok order was fainalized ! ");
-      };
-    };
-  };
 
-  public shared query func totalAmount(orderId : Nat) : async Nat {
-    let order = Cart.get(cartMap, orderId);
-    var totalAmount : Nat = 0;
-    switch (order) {
-      case (null) {
-        return 0;
-      };
-      case (?is) {
-        for (element in is.items.vals()) {
-          switch (element) {
-            case (item) {
-              switch (item.item) {
-                case (menuItem) {
-                  totalAmount += menuItem.price * element.quantity;
-                };
-              };
+        let finalizedOrder = { cart with stage = #Finalized };
 
-            };
-          };
-        };
-        return totalAmount;
+        Cart.put(cartMap, orderId, finalizedOrder);
+        return #ok("it's ok order was finalized");
       };
     };
   };
