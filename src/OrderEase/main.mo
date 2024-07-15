@@ -14,9 +14,10 @@ import Log "Log";
 import Menu "Menu";
 import Review "Review";
 import Table "Table";
+import Types "Types";
 import User "User";
 
-shared ({ caller = manager }) actor class Dorder() = this {
+shared ({ caller = manager }) actor class OrderEase() = this {
 
   // TODO: Replace this with Manager to anonymus role
   let guest : Principal = Principal.fromText("2vxsx-fae");
@@ -62,7 +63,7 @@ shared ({ caller = manager }) actor class Dorder() = this {
 
   };
 
-  public shared ({ caller }) func hireOrUpdateEmployee(principal : Principal, role : User.UserRole, allowedOperations : [User.Operation]) : async Result.Result<(Text), Text> {
+  public shared ({ caller }) func hireOrUpdateEmployee(principal : Principal, role : Types.UserRole, allowedOperations : [Types.Operation]) : async Result.Result<(Text), Text> {
     if (User.employeeCanPerform(employeeMap, caller, #Hire) != true) {
       return #err("The caller " # Principal.toText(caller) # " havent Opration for this func");
     };
@@ -265,6 +266,7 @@ shared ({ caller = manager }) actor class Dorder() = this {
 
   };
 
+  ///// must correct
   public shared ({ caller }) func removeMenuItem(menuId : Nat) : async Result.Result<Text, Text> {
     if (User.employeeCanPerform(employeeMap, caller, #ModifyMenuItem) != true) {
       return #err("The caller " #Principal.toText(caller) # " dose not have permission to remove menu item!");
@@ -444,7 +446,7 @@ shared ({ caller = manager }) actor class Dorder() = this {
 
   stable let cartMap = Map.new<Nat, Cart.Order>();
 
-  public shared ({ caller }) func openOrEditCart(orderId : ?Nat, orderType : Cart.OrderType, items : [Cart.CartItem]) : async Result.Result<Nat, Text> {
+  public shared ({ caller }) func openOrEditCart(orderType : Cart.OrderType, items : [Cart.CartItem]) : async Result.Result<Nat, Text> {
     //check caller has Order or not ! if order is open add the order
     switch (Cart.hasOpenOrder(cartMap, caller)) {
       case (?order) {
@@ -468,6 +470,10 @@ shared ({ caller = manager }) actor class Dorder() = this {
 
     let newOrder = Cart.new(menuMap, cartMap, caller, orderType, items);
     return #ok(newOrder);
+  };
+
+  public shared query ({ caller }) func getOpenCart() : async ?Cart.Order {
+    return Cart.hasOpenOrder(cartMap, caller);
   };
 
   public shared ({ caller }) func finalizedCart(orderId : Nat) : async Result.Result<Text, Text> {
@@ -502,20 +508,49 @@ shared ({ caller = manager }) actor class Dorder() = this {
         let finalizedOrder = { cart with stage = #Finalized };
 
         Cart.put(cartMap, orderId, finalizedOrder);
-        return #ok("it's ok order was finalized");
+        return #ok("order was finalized");
       };
     };
   };
 
+  ///////////////////////// Notification \\\\\\\\\\\\\\\\\\\\\
+
+  stable var messages : [Types.Message] = [];
+  stable var notifyId : Nat = 0;
+
+  public query ({ caller }) func sendNotify(notifyTo : Types.UserRole, msg : Text) : async Result.Result<Nat, Text> {
+    if (User.employeeCanPerform(employeeMap, caller, #SendNotify) != true) {
+      return #err("Caller have not opration ");
+    };
+
+    messages := Array.append<Types.Message>(messages, [{ message = msg; messageId = notifyId; by = caller; to = notifyTo }]);
+
+    notifyId += 1;
+    return #ok(notifyId -1);
+
+  };
+
+  public shared query ({ caller }) func getMessage() : async [Types.Message] {
+    var msg : [Types.Message] = [];
+    switch (User.get(userMap, caller)) {
+      case (null) {
+        return [];
+      };
+      case (?user) {
+        switch (user.role) {
+          case (role) {
+            for (element in messages.vals()) {
+              if (element.to == role) {
+                msg := Array.append<Types.Message>(msg, [element]);
+              };
+            };
+          };
+        };
+        return msg;
+      };
+    };
+  };
 };
-
-// public shared ({ caller }) func addToCart(menuId : Nat, quantity : Nat) : async Result.Result<Cart.CartMap, Text> {
-
-//   if (Menu.isAvailable(menuMap, menuId) != true) {
-//     return #err("this item is not Available ");
-//   };
-
-// };
 
 // //member
 // //systeme ray giri baraye ezafe kardan va hazf kardane menu va khadamat

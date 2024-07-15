@@ -1,5 +1,3 @@
-import Iter "mo:base/Iter";
-import Result "mo:base/Result";
 import Time "mo:base/Time";
 import Map "mo:map/Map";
 import { nhash } "mo:map/Map";
@@ -85,19 +83,6 @@ module Cart {
             };
         };
         return null;
-    };
-
-    public func hasOpen(cartMap : CartMap, orderId : Nat) : Bool {
-        switch (get(cartMap, orderId)) {
-            case (?order) {
-                if (order.stage == #Finalized) {
-                    return false;
-                } else return true;
-            };
-            case (null) {
-                return false;
-            };
-        };
     };
 
     public func calculateItemsAmount(menuMap : Menu.MenuMap, items : [CartItem]) : Float {

@@ -9,40 +9,17 @@ import Types "Types";
 // Define the enum for different operations
 module {
 
-    public type UserRole = {
-        #Guest;
-        #Customer;
-        #Employee;
-        #Manager;
-        #Admin;
-    };
-
-    public type Operation = {
-        #ReserveTable;
-        #UnreserveTable;
-        #CanTakeAway;
-        #PayTable;
-        #MonitorLogs;
-        #Hire;
-        #Fire;
-        #ModifyTable;
-        #ModifyMenuItem;
-        #ModifyMenuItemPoint;
-        #ModifyEmployeePoints;
-    };
-
     public type User = {
         //must added address for user
         id : Nat;
         name : Text;
         number : Nat;
         email : Text;
-        allowedOperations : [Operation];
-        role : UserRole;
+        allowedOperations : [Types.Operation];
+        role : Types.UserRole;
         reviewPoint : Nat;
         buyingScore : Nat;
         image : ?Blob;
-        order : [Types.CartItem];
     };
 
     public type Employee = {
@@ -51,8 +28,8 @@ module {
         name : Text;
         number : Nat;
         email : Text;
-        role : UserRole;
-        allowedOperations : [Operation];
+        role : Types.UserRole;
+        allowedOperations : [Types.Operation];
         image : ?Blob;
         review : [Review.EmployeeReview];
     };
@@ -71,7 +48,7 @@ module {
     };
 
     // add New user specefic with oprations
-    public func new(userMap : UserMap, principal : Principal, name : Text, email : Text, role : UserRole, number : Nat, image : ?Blob, allowedOperations : [Operation]) : () {
+    public func new(userMap : UserMap, principal : Principal, name : Text, email : Text, role : Types.UserRole, number : Nat, image : ?Blob, allowedOperations : [Types.Operation]) : () {
         let id = Map.size(userMap) +1;
         switch (get(userMap, principal)) {
             case (null) {
@@ -106,7 +83,6 @@ module {
                     role = user.role;
                     reviewPoint = user.reviewPoint;
                     buyingScore = user.buyingScore;
-                    order = user.order;
                 };
 
                 put(userMap, principal, updateUser);
@@ -116,7 +92,7 @@ module {
 
     };
 
-    public func hire(employeeMap : EmployeeMap, p : Principal, role : UserRole, name : Text, email : Text, number : Nat, image : ?Blob, allowedOperations : [Operation]) : () {
+    public func hire(employeeMap : EmployeeMap, p : Principal, role : Types.UserRole, name : Text, email : Text, number : Nat, image : ?Blob, allowedOperations : [Types.Operation]) : () {
         let employee = Map.get(employeeMap, phash, p);
         let id = Map.size(employeeMap) +1;
         switch (employee) {
@@ -155,7 +131,7 @@ module {
 
     };
 
-    public func employeeCanPerform(employeeMap : EmployeeMap, p : Principal, operation : Operation) : Bool {
+    public func employeeCanPerform(employeeMap : EmployeeMap, p : Principal, operation : Types.Operation) : Bool {
         let user = Map.get(employeeMap, phash, p);
 
         switch (user) {
@@ -174,7 +150,7 @@ module {
         };
     };
 
-    public func userCanPerform(userMap : UserMap, p : Principal, operation : Operation) : Bool {
+    public func userCanPerform(userMap : UserMap, p : Principal, operation : Types.Operation) : Bool {
         let user = get(userMap, p);
 
         switch (user) {
