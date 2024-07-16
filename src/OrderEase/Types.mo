@@ -23,11 +23,4 @@ module {
         #ModifyEmployeePoints;
     };
 
-    public type Message = {
-        message : Text;
-        messageId : Nat;
-        by : Principal;
-        to : UserRole;
-    };
-
 };

@@ -3,6 +3,9 @@ import Time "mo:base/Time";
 import Map "mo:map/Map";
 import { nhash } "mo:map/Map";
 
+import Types "Types";
+import User "User";
+
 module {
 
     public type Log = {
@@ -13,6 +16,7 @@ module {
     };
 
     public type Catagory = {
+        #Message;
         #Member;
         #Table;
         #Menu;
@@ -60,4 +64,37 @@ module {
         return filteredLogs;
 
     };
+
+    public func userRoleToText(role : Types.UserRole) : Text {
+        switch (role) {
+            case (#Guest) { "Guest" };
+            case (#Customer) { "Customer" };
+            case (#Employee) { "Employee" };
+            case (#Manager) { "Manager" };
+            case (#Admin) { "Admin" };
+        };
+    };
+
+    public func catagoryToText(cat : Catagory) : Text {
+        switch (cat) {
+            case (#Message) { "Message" };
+            case (#Member) { "Member" };
+            case (#Table) { "Table" };
+            case (#Menu) { "Menu" };
+            case (#Order) { "Order" };
+            case (#EmployeeReview) { "EmployeeReview" };
+            case (#MenuReview) { "MenuReview" };
+            case (#Personnel) { "Personnel" };
+        };
+    };
+
+    public func memberNameAndRoleToText(userMap : User.UserMap, member : Principal) : Text {
+        switch (User.get(userMap, member)) {
+            case (?user) {
+                "Name " #user.name # " with role " #userRoleToText(user.role) # "";
+            };
+            case (null) { "" };
+        };
+    };
+
 };

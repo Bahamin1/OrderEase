@@ -2,37 +2,15 @@ import Map "mo:map/Map";
 import { phash } "mo:map/Map";
 
 import Review "Review";
+import Types "Types";
 
 module {
-
-    public type UserRole = {
-        #Guest;
-        #Customer;
-        #Employee;
-        #Manager;
-        #Admin;
-    };
-
-    public type Operation = {
-        #ReserveTable;
-        #UnreserveTable;
-        #PayTable;
-        #MonitorLogs;
-        #HireManager;
-        #FireManager;
-        #HireEmployee;
-        #FireEmployee;
-        #ModifyTable;
-        #ModifyMenuItem;
-        #ModifyMenuItemPoint;
-        #ModifyEmployeePoints;
-    };
 
     public type Employee = {
         name : Text;
         principal : Principal;
-        role : UserRole;
-        allowedOperations : [Operation];
+        role : Types.UserRole;
+        allowedOperations : [Types.Operation];
         id : Nat;
         image : ?Blob;
         review : [Review.EmployeeReview]
@@ -51,7 +29,7 @@ module {
     };
 
     // add New user specefic with oprations
-    public func new(userMap : EmployeeMap, principal : Principal, name : Text, role : UserRole, allowedOperations : [Operation]) : () {
+    public func new(userMap : EmployeeMap, principal : Principal, name : Text, role : Types.UserRole, allowedOperations : [Types.Operation]) : () {
         let id = Map.size(userMap) +1;
 
         let user : Employee = {
@@ -71,7 +49,7 @@ module {
         return;
     };
 
-    public func canPerform(userMap : EmployeeMap, p : Principal, operation : Operation) : Bool {
+    public func canPerform(userMap : EmployeeMap, p : Principal, operation : Types.Operation) : Bool {
         let user = get(userMap, p);
 
         switch (user) {

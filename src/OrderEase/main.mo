@@ -10,9 +10,11 @@ import Map "mo:map/Map";
 import { nhash; phash } "mo:map/Map";
 
 import Cart "Cart";
+import Employee "Employee";
 import Log "Log";
 import Menu "Menu";
 import Review "Review";
+import Service "Service";
 import Table "Table";
 import Types "Types";
 import User "User";
@@ -515,23 +517,24 @@ shared ({ caller = manager }) actor class OrderEase() = this {
 
   ///////////////////////// Notification \\\\\\\\\\\\\\\\\\\\\
 
-  stable var messages : [Types.Message] = [];
+  stable var messages : [Service.Message] = [];
   stable var notifyId : Nat = 0;
 
-  public query ({ caller }) func sendNotify(notifyTo : Types.UserRole, msg : Text) : async Result.Result<Nat, Text> {
+  public shared ({ caller }) func sendNotify(notifyTo : Types.UserRole, msg : Text) : async Result.Result<Nat, Text> {
     if (User.employeeCanPerform(employeeMap, caller, #SendNotify) != true) {
       return #err("Caller have not opration ");
     };
 
-    messages := Array.append<Types.Message>(messages, [{ message = msg; messageId = notifyId; by = caller; to = notifyTo }]);
+    messages := Array.append<Service.Message>(messages, [{ message = msg; messageId = notifyId; by = caller; to = notifyTo }]);
 
+    Log.add(logMap, #Message, "Notification " #Nat.toText(notifyId) # " Sent To " #Log.userRoleToText(notifyTo) # " By " # Log.memberNameAndRoleToText(userMap, caller) # ".");
     notifyId += 1;
     return #ok(notifyId -1);
 
   };
 
-  public shared query ({ caller }) func getMessage() : async [Types.Message] {
-    var msg : [Types.Message] = [];
+  public shared query ({ caller }) func getMessage() : async [Service.Message] {
+    var msg : [Service.Message] = [];
     switch (User.get(userMap, caller)) {
       case (null) {
         return [];
@@ -541,14 +544,28 @@ shared ({ caller = manager }) actor class OrderEase() = this {
           case (role) {
             for (element in messages.vals()) {
               if (element.to == role) {
-                msg := Array.append<Types.Message>(msg, [element]);
+                msg := Array.append<Service.Message>(msg, [element]);
               };
             };
           };
         };
+
         return msg;
       };
     };
+  };
+
+  public shared ({ caller }) func removeMessageById(id : Nat) : async Text {
+    if (User.employeeCanPerform(employeeMap, caller, #SendNotify)) {
+      return ("Caller have not opration");
+    };
+    for (element in messages.vals()) {
+      if (element.messageId == id) {
+        messages := Array.filter<Service.Message>(messages, func(message : Service.Message) { element.messageId != id });
+      };
+    };
+    Log.add(logMap, #Message, "Notification " #Nat.toText(id) # " Removed By " # Log.memberNameAndRoleToText(userMap, caller) # ".");
+    return ("message Deleted");
   };
 };
 
