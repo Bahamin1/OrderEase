@@ -1,8 +1,10 @@
+import Array "mo:base/Array";
 import Time "mo:base/Time";
 import Map "mo:map/Map";
 import { nhash } "mo:map/Map";
 
 import Menu "Menu";
+import R "Reciept";
 
 module Cart {
 
@@ -36,7 +38,7 @@ module Cart {
         status : OrderStatus;
         orderBy : Principal;
         orderType : OrderType;
-        totalAmount : ?Float;
+        totalAmount : Float;
         stage : OrderStage;
         createdAt : Time.Time;
         isPaid : Bool;
@@ -62,7 +64,7 @@ module Cart {
             items = items;
             status = #Pending;
             orderBy = p;
-            totalAmount = ?amount;
+            totalAmount = amount;
             stage = #Open;
             orderType = orderType;
             createdAt = Time.now();
@@ -98,6 +100,54 @@ module Cart {
             };
         };
         return totalAmount;
+    };
+
+    public func checkout(cartMap : CartMap, p : Principal) : [Order] {
+        var filteredOrders : [Order] = [];
+        for (order in Map.vals(cartMap)) {
+            if (order.orderBy == p) {
+                if (order.stage == #Finalized) {
+                    filteredOrders := Array.append<Order>(filteredOrders, [order]);
+                    return filteredOrders;
+                };
+            };
+        };
+        return [];
+    };
+
+    public func combineChekouts(cartMap : CartMap, p : Principal, method : R.PaymentMethod, orders : [Order]) : Order {
+        var totalAmount : Float = 0.0;
+        for (element in orders.vals()) {
+            totalAmount += element.totalAmount;
+        };
+        var allItems : [CartItem] = [];
+        for (element in orders.vals()) {
+            switch (element.items) {
+                case (is) {
+                    for (element in is.vals()) {
+
+                        allItems := Array.append<CartItem>(allItems, [element]);
+                    };
+
+                };
+            };
+        };
+
+        let id = Map.size(cartMap) + 1;
+
+        let newReciept : Order = {
+            id = id;
+            items = allItems;
+            status = #Delivered;
+            orderBy = p;
+            totalAmount = totalAmount;
+            stage = #Finalized;
+            orderType = orders.orderType;
+            createdAt = Time.now();
+            isPaid = false;
+
+        };
+
     };
 
 };

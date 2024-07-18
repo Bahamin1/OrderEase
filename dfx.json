@@ -1,14 +1,37 @@
 {
   "canisters": {
-    "Dorder_backend": {
-      "main": "src/OrderEase/main.mo",
-      "type": "motoko"
+    "evm_rpc": {
+      "type": "custom",
+      "candid": "/home/bahamin/Dorder/src/declarations/evm_rpc/evm_rpc.did",
+      "wasm": "https://github.com/internet-computer-protocol/evm-rpc-canister/releases/latest/download/evm_rpc_dev.wasm.gz",
+      "remote": {
+        "id": {
+          "ic": "be2us-64aaa-aaaaa-qaabq-cai"
+        }
+      }
+    },
+    "cketh": {
+      "type": "custom",
+      "candid": "/home/bahamin/Dorder/src/declarations/cketh/cketh.did",
+      "wasm": "https://download.dfinity.systems/ic/d87954601e4b22972899e9957e800406a0a6b929/canisters/ic-icrc1-ledger.wasm.gz",
+      "remote": {
+        "id": {
+          "ic": "bd3sg-teaaa-aaaaa-qaaba-cai"
+        }
+      }
+    },
+    "OrderEase": {
+      "dependencies": [
+        "evm_rpc",
+        "cketh"
+      ],
+      "type": "motoko",
+      "main": "OrderEase/main.mo"
     }
   },
   "defaults": {
     "build": {
-      "args": "",
-      "packtool": "mops sources"
+      "packtool": "npm run --silent sources"
     }
   },
   "output_env_file": ".env",

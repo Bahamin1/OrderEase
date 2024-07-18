@@ -9,6 +9,7 @@ module {
     };
 
     public type Operation = {
+        #ModifyReciept;
         #SendNotify;
         #ReserveTable;
         #UnreserveTable;

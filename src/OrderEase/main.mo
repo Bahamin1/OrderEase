@@ -1,5 +1,6 @@
 import Array "mo:base/Array";
 import Buffer "mo:base/Buffer";
+import Debug "mo:base/Debug";
 import Iter "mo:base/Iter";
 import Nat "mo:base/Nat";
 import Principal "mo:base/Principal";
@@ -11,8 +12,10 @@ import { nhash; phash } "mo:map/Map";
 
 import Cart "Cart";
 import Employee "Employee";
+import EvmRpc "EvmRpc";
 import Log "Log";
 import Menu "Menu";
+import R "Reciept";
 import Review "Review";
 import Service "Service";
 import Table "Table";
@@ -507,9 +510,20 @@ shared ({ caller = manager }) actor class OrderEase() = this {
 
         };
 
+        let newReciept : R.Reciept = {
+          txId = next_receipt_id;
+          amount : Nat;
+          createdAt : Int;
+          buyer : Principal;
+          address : Text;
+          txHash : Text;
+          processed : Bool;
+          payWith : ?PaymentMethod;
+        };
+
         let finalizedOrder = { cart with stage = #Finalized };
 
-        Cart.put(cartMap, orderId, finalizedOrder);
+        R.put(recieptMap, next_receipt_id) Cart.put(cartMap, orderId, finalizedOrder);
         return #ok("order was finalized");
       };
     };
@@ -567,6 +581,157 @@ shared ({ caller = manager }) actor class OrderEase() = this {
     Log.add(logMap, #Message, "Notification " #Nat.toText(id) # " Removed By " # Log.memberNameAndRoleToText(userMap, caller) # ".");
     return ("message Deleted");
   };
+
+  ////////////////// Reciept \\\\\\\\\\\\\\\\\\
+  stable var recieptMap = Map.new<Nat, R.Receipt>();
+  private stable var next_reciept_id : Nat = 0;
+
+  public func getReceipt(txId : Nat) : async ?R.Receipt {
+    return R.recieptGet(recieptMap, txId);
+  };
+
+  public shared ({ caller }) func getReciepts() : async [R.Receipt] {
+
+    assert (User.employeeCanPerform(employeeMap, caller, #ModifyReciept) != true);
+    /// test
+    if (User.employeeCanPerform(employeeMap, caller, #ModifyReciept) != true) {
+      Debug.trap("caller havent opration");
+    };
+    return Iter.toArray(Map.vals<Nat, R.Receipt>(recieptMap));
+  };
+
+  public shared func getTransactionReceipt(txHash : Text) : async ?EvmRpc.TransactionReceipt {
+    return await EvmRpc.getTransactionReceipt(txHash);
+  };
+
+  // Verify reciept
+  private stable var next_receipt_id : Nat = 0;
+  public shared ({ caller }) func verifyTransaction(txHash : Text) : async Result.Result<(Nat, Text, Nat, Nat), Text> {
+    let cart = R.get(cartMap, caller);
+
+    if (processed_transaction_exists(txHash)) {
+      return #err("Transaction already processed");
+    };
+
+    let receipt = await getTransactionReceipt(txHash);
+
+    processed_transaction_put(txHash);
+
+    switch (receipt) {
+      case (null) {
+        return #err("Transaction not found");
+      };
+      case (?receipt) {
+        if (receipt.to != EthUtils.MINTER_ADDRESS) {
+          Debug.trap("Transaction to wrong address");
+        };
+
+        let log = receipt.logs[0];
+
+        if (log.address != EthUtils.MINTER_ADDRESS) {
+          Debug.trap("Log from wrong address");
+        };
+
+        let principal = await canisterDepositPrincipal();
+        let log_principal = Text.toLowercase(log.topics[2]);
+
+        if (log_principal != principal) {
+          Debug.trap("Principal does not match");
+        };
+
+        let txId = next_receipt_id;
+        next_receipt_id += 1;
+
+        let status = receipt.status;
+        let amount = EthUtils.hexToNat(log.data);
+        let address = EthUtils.hexToEthAddress(log.topics[1]);
+
+        return #ok(status, address, amount, txId);
+
+        let reciept : T.Receipt = {
+          txId = txId;
+          txHash = txHash;
+          address = address;
+          buyer = caller;
+          amount = amount;
+          createdAt = Time.now();
+        };
+
+        recieptPut(txId, reciept);
+
+        return #ok(status, address, amount, txId);
+      };
+    };
+  };
+
+  // Pay for the cart
+  public shared ({ caller }) func pay(hash : Text) : async Result.Result<Nat, Text> {
+    let cart = Cart.get(cartmap, caller);
+
+    switch (cart) {
+      case (null) {
+        return #err("No cart found");
+      };
+      case (?cart) {
+        var total : Nat = 0;
+
+        for (cart_product in cart.products.vals()) {
+          let product = productGet(cart_product.product_id);
+          switch (product) {
+            case (null) {
+              return #err("Product not found");
+            };
+            case (?product) {
+              total += product.price * cart_product.quantity;
+            };
+          };
+        };
+
+        let result = await verifyTransaction(hash);
+
+        switch (result) {
+          case (#err(err)) {
+            return #err(err);
+          };
+          case (#ok(status, address, amount, txId)) {
+            if (status != 1) {
+              return #err("Transaction failed");
+            };
+
+            if (amount < total) {
+              return #err("Insufficient amount");
+            };
+
+            let txId = next_receipt_id;
+            next_receipt_id += 1;
+
+            let reciept : T.Receipt = {
+              txId = txId;
+              txHash = hash;
+              address = address;
+              buyer = caller;
+              amount = amount;
+              createdAt = Time.now();
+            };
+
+            recieptPut(txId, reciept);
+
+            return #ok(txId);
+          };
+        };
+      };
+    };
+  };
+
+  ///////Get the canister id as bytes\\\\\\\
+  public shared func canisterDepositPrincipal() : async Text {
+    let account = Principal.fromActor(this);
+
+    let id = E.principalToBytes32(account);
+
+    return Text.toLowercase(id);
+  };
+
 };
 
 // //member
